@@ -3,15 +3,17 @@
 JSON-RPC 2.0 TypeScript library for [deno](https://github.com/denoland/deno) and
 the browser.
 
+This library is accessible through the https://deno.land/x/ service.
+
 ## Features
 
 - Complies with the JSON-RPC 2.0
   [**specification**](https://www.jsonrpc.org/specification)
-- Uses TypeScript native
-  [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
-  for a simpler API on the client side
 - Transfers data over the
   [**fetch API**](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+- Uses TypeScript native
+  [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
+  for a simple API on the client side
 
 ## Example
 
@@ -19,7 +21,7 @@ the browser.
 
 ```typescript
 import { serve, ServerRequest } from "https://deno.land/std/http/server.ts"
-import { respondRpc } from "https://cdn.jsdelivr.net/gh/timonson/gentleRpc@latest/rpcServer.ts"
+import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts"
 
 const s = serve("0.0.0.0:8000")
 const rpcMethods = {
@@ -35,7 +37,7 @@ for await (const req of s) {
 #### Client/remote side
 
 ```typescript
-import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentleRpc@latest/rpcClient.ts"
+import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts"
 
 const remote = createRemote("http://0.0.0.0:8000")
 const greeting = await remote.sayHello("World") // Hello World
@@ -80,10 +82,12 @@ object as promise.
 Any number of arguments to the method calls is possible.
 
 ```typescript
-await remote.sayHello("World") // // Hello World
+await remote.sayHello("World") // Hello World
 ```
 
-#### remote.batch(object)
+#### Batch Requests
+
+##### remote.batch(object)
 
 Additionally, to send several request objects at the same time, the client may
 send an array filled with request objects. You can do this on two different
@@ -116,6 +120,8 @@ const noise2 = await remote.batch({
 })
 // { cat: "MIAAOW", dog: "WUUUUFU", donkey: "IAAAIAIA", dragon: "FIIIIIRE" }
 ```
+
+### Examples and Tests
 
 Checkout the
 [examples](https://github.com/timonson/gentleRpc/tree/master/examples) and

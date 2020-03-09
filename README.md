@@ -70,11 +70,11 @@ const greeting = await remote.sayHello("World") // Hello World
   is called, with the returned response object as argument, if _fetch_ was not
   successful (status code outside the range 200-299).
 
-#### remote.method(arguments)
+#### remote.method(values)
 
 Each method call of the remote object will look for the identically named method
-on the server side, where the methods have been defined. It is based on the
-native JavaScript **Proxy** object.
+on the server side, where the methods are defined. This API is based on the
+native JS/TS **Proxy** object.
 
 The methods return the **result** or **error** property of the RPC response
 object as promise.
@@ -87,13 +87,12 @@ await remote.sayHello("World") // Hello World
 
 #### Batch Requests
 
-##### remote.batch(object)
-
 Additionally, to send several request objects at the same time, the client may
 send an array filled with request objects. You can do this on two different
 ways:
 
-1. remote.batch(["method1", ["arg1", "arg2"]])
+1. **remote.batch([["method1", ["arg1", "arg2"]], ["method2", ["arg1",
+   "arg2"]]])**
 
 ```typescript
 const noise1 = await remote.batch([
@@ -105,7 +104,8 @@ const noise1 = await remote.batch([
 // [ "MIAAOW", "WUUUUFU", "IAAAIAIA", "FIIIIIRE" ]
 ```
 
-2. remote.batch({key: ["method1", ["arg1", "arg2"]]})
+2. **remote.batch({key1: ["method1", ["arg1", "arg2"]], key2: ["method1",
+   ["arg1", "arg2"]]})**
 
 The way of making _batch_ requests uses the object keys (_cat, dog, donkey,
 dragon_) as RPC _request object ids_ under the hood. The returned result values

@@ -9,5 +9,5 @@ const rpcMethods = {
 
 for await (const req of s) {
   const result = await respondRpc(req, rpcMethods)
-  console.log(result)
+  // console.log(result)
 }

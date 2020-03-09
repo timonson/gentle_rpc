@@ -28,8 +28,7 @@ const rpcMethods = {
 }
 
 for await (const req of s) {
-  const result = await respondRpc(req, rpcMethods)
-  console.log(result)
+  await respondRpc(req, rpcMethods)
 }
 ```
 
@@ -37,6 +36,7 @@ for await (const req of s) {
 
 ```typescript
 import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentleRpc@latest/rpcClient.ts"
+
 const remote = createRemote("http://0.0.0.0:8000")
 const greeting = await remote.sayHello("World") // Hello World
 ```
@@ -85,25 +85,30 @@ Additionally, to send several request objects at the same time, the client may
 send an array filled with request objects. You can do this on two different
 ways:
 
+1. remote.batch(["method1", ["arg1", "arg2"]])
+
 ```typescript
 const noise1 = await remote.batch([
-  ["animalsMakeNoise", "miaaow"],
-  ["animalsMakeNoise", "wuuuufu"],
-  ["animalsMakeNoise", "iaaaiaia"],
-  ["animalsMakeNoise", "fiiiiire"],
+  ["animalsMakeNoise", ["miaaow"]],
+  ["animalsMakeNoise", ["wuuuufu"]],
+  ["animalsMakeNoise", ["iaaaiaia"]],
+  ["animalsMakeNoise", ["fiiiiire"]],
 ])
+// [ "MIAAOW", "WUUUUFU", "IAAAIAIA", "FIIIIIRE" ]
 ```
 
-The second example uses the object keys, like _cat, dog, donkey, dragon_, as RPC
-_Request Object IDs_ under the hood and reassigns the final results to them. The
-result might look like this:
+2. remote.batch({key: ["method1", ["arg1", "arg2"]]})
+
+The way of making _batch_ requests uses the object keys (_cat, dog, donkey,
+dragon_) as RPC _request object ids_ under the hood. The returned result values
+will be assigned to these key. Let's take a look at the following example:
 
 ```typescript
 const noise2 = await remote.batch({
-  cat: ["animalsMakeNoise", "miaaow"],
-  dog: ["animalsMakeNoise", "wuuuufu"],
-  donkey: ["animalsMakeNoise", "iaaaiaia"],
-  dragon: ["animalsMakeNoise", "fiiiiire"],
+  cat: ["animalsMakeNoise", ["miaaow"]],
+  dog: ["animalsMakeNoise", ["wuuuufu"]],
+  donkey: ["animalsMakeNoise", ["iaaaiaia"]],
+  dragon: ["animalsMakeNoise", ["fiiiiire"]],
 })
 // { cat: "MIAAOW", dog: "WUUUUFU", donkey: "IAAAIAIA", dragon: "FIIIIIRE" }
 ```

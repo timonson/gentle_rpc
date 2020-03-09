@@ -10,24 +10,24 @@ try {
 }
 
 try {
-  const noise1 = await remote.batch({
-    cat: ["animalsMakeNoise", ["miaaow"]],
-    dog: ["animalsMakeNoise", ["wuuuufu"]],
-    donkey: ["animalsMakeNoise", ["iaaaiaia"]],
-    dragon: ["animalsMakeNoise", ["fiiiiire"]],
-  })
+  const noise1 = await remote.batch([
+    ["animalsMakeNoise", ["miaaow"]],
+    ["animalsMakeNoise", ["wuuuufu"]],
+    ["animalsMakeNoise", ["iaaaiaia"]],
+    ["animalsMakeNoise", ["fiiiiire"]],
+  ])
   console.log(noise1)
 } catch (err) {
   console.log(err)
 }
 
 try {
-  const noise2 = await remote.batch([
-    ["animalsMakeNoise", ["miaaow"]],
-    ["animalsMakeNoise", ["wuuuufu"]],
-    ["animalsMakeNoise", ["iaaaiaia"]],
-    ["animalsMakeNoise", ["fiiiiire"]],
-  ])
+  const noise2 = await remote.batch({
+    cat: ["animalsMakeNoise", ["miaaow"]],
+    dog: ["animalsMakeNoise", ["wuuuufu"]],
+    donkey: ["animalsMakeNoise", ["iaaaiaia"]],
+    dragon: ["animalsMakeNoise", ["fiiiiire"]],
+  })
   console.log(noise2)
 } catch (err) {
   console.log(err)

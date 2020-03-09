@@ -103,17 +103,16 @@ class Client {
   }
   // [[str:method,any:params],[str:method,any:params]] || {Id1:[str:method,any:params],id2:[str:method,any:params]}
   batch(batchObj: Batches, notification = false) {
-    return send(
-      this.url,
-      {
-        ...this.fetchInit,
-        body: JSON.stringify(createRpcBatchObj(batchObj, notification)),
-      },
-      this.handleUnsuccessfulResponse
+    return this.makeRpcCall(
+      JSON.stringify(createRpcBatchObj(batchObj, notification)),
+      Array.isArray(batchObj)
     )
   }
 
-  async makeRpcCall(stringifiedRpcRequestObj: string) {
+  async makeRpcCall(
+    stringifiedRpcRequestObj: string,
+    giveOnlyBatchResultsToClient = true
+  ) {
     const rpcResponseObj = await send(
       this.url,
       {
@@ -123,18 +122,24 @@ class Client {
       this.handleUnsuccessfulResponse
     )
     return Array.isArray(rpcResponseObj)
-      ? rpcResponseObj.reduce((acc, el) => {
-          if (el.id !== null) {
-            acc[el.id as string | number] =
-              "result" in el ? el.result : el.error
+      ? giveOnlyBatchResultsToClient
+        ? rpcResponseObj.reduce((acc, el) => {
+            acc.push(el.result)
             return acc
-          } else {
-            if ("null" in acc)
-              acc["null"].push("result" in el ? el.result : el.error)
-            else acc["null"] = ["result" in el ? el.result : el.error]
-            return acc
-          }
-        }, {} as any)
+          }, [] as any[])
+        : rpcResponseObj.reduce((acc, el) => {
+            if (el.id !== null) {
+              acc[el.id as string | number] =
+                "result" in el ? el.result : el.error
+              return acc
+            } else {
+              // id might be null
+              if ("null" in acc)
+                acc["null"].push("result" in el ? el.result : el.error)
+              else acc["null"] = ["result" in el ? el.result : el.error]
+              return acc
+            }
+          }, {} as any)
       : this.finishResponse(rpcResponseObj)
   }
 

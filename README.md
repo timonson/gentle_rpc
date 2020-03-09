@@ -1,7 +1,7 @@
 # gentleRpc
 
-**JSON-RPC 2.0** library for [deno](https://github.com/denoland/deno) and the
-browser.
+JSON-RPC 2.0 TypeScript library for [deno](https://github.com/denoland/deno) and
+the browser.
 
 ## Features
 
@@ -19,7 +19,7 @@ browser.
 
 ```typescript
 import { serve, ServerRequest } from "https://deno.land/std/http/server.ts"
-import { respondRpc } from "../rpcServer.ts"
+import { respondRpc } from "https://cdn.jsdelivr.net/gh/timonson/gentleRpc@latest/rpcServer.ts"
 
 const s = serve("0.0.0.0:8000")
 const rpcMethods = {
@@ -36,7 +36,7 @@ for await (const req of s) {
 #### Client/remote side
 
 ```typescript
-import { createRemote } from "../rpcClient.ts"
+import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentleRpc@latest/rpcClient.ts"
 const remote = createRemote("http://0.0.0.0:8000")
 const greeting = await remote.sayHello("World") // Hello World
 ```
@@ -47,13 +47,13 @@ const greeting = await remote.sayHello("World") // Hello World
 
 - `url: string` fetch data from
 - `options: object` this object will be merged into default options for _fetch_
-  with execption of the two optional properties `notification: boolean` and
-  `id: string | number`.
+  with exception of the two additional and optional properties
+  `notification: boolean` and `id: string | number`.
   - `notification` causes the server to make an empty response
   - `id` sets an custom id
 - `handleUnsuccessfulResponse: (response: object => any)` this optional callback
-  is called, with the to _fetch_ returned response object as argument, if
-  _fetch_ was not successful.
+  is called, with the returned response object as argument, if _fetch_ was not
+  successful (status code outside the range 200-299).
 
 #### respondRpc(request, methods, { includeServerErrorStack, callMethodsWithRequestObj })
 
@@ -95,8 +95,8 @@ const noise1 = await remote.batch([
 ```
 
 The second example uses the object keys, like _cat, dog, donkey, dragon_, as RPC
-**Request Object IDs** under the hood and reassigns the final results to them.
-The result might look like this:
+_Request Object IDs_ under the hood and reassigns the final results to them. The
+result might look like this:
 
 ```typescript
 const noise2 = await remote.batch({
@@ -110,4 +110,5 @@ const noise2 = await remote.batch({
 
 Checkout the
 [examples](https://github.com/timonson/gentleRpc/tree/master/examples) and
-[tests]() folders for more detailed examples.
+[tests](https://github.com/timonson/gentleRpc/tree/master/tests) folders for
+more detailed examples.

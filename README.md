@@ -73,11 +73,11 @@ native JavaScript **Proxy** object.
 The methods return the **result** or **error** property of the RPC response
 object as promise.
 
-```typescript
-await remote.sayHello("World")
-```
-
 Any number of arguments to the method calls is possible.
+
+```typescript
+await remote.sayHello("World") // // Hello World
+```
 
 #### remote.batch(object)
 

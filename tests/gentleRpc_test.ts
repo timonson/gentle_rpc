@@ -1,11 +1,11 @@
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts"
-import { respondToRpcRequest, handleData } from "../server.ts"
+import { handleData } from "../rpcServer.ts"
 import {
   createRemote,
   send,
   createRpcRequestObj,
   createRpcBatchObj,
-} from "../client.ts"
+} from "../rpcClient.ts"
 
 function subtract(minuend: number, subtrahend: number) {
   return minuend - subtrahend
@@ -237,4 +237,4 @@ Deno.test(async function makeRpcCallWithRequestObjectMockAsArgument(): Promise<
     JSON.parse(objSentToClient)
   )
 })
-await Deno.runTests()
+// await Deno.runTests()

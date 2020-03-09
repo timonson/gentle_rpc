@@ -43,6 +43,19 @@ const greeting = await remote.sayHello("World") // Hello World
 
 ## API
 
+### Server
+
+#### respondRpc(request, methods, { includeServerErrorStack, callMethodsWithRequestObj })
+
+- request: `ServerRequest`
+- methods: `{ [method: string]: (...args: any[]) => any }`
+- includeServerErrorStack: `boolean` detemines if the client's error objects may
+  contain the server's error stack. Default is `false`.
+- callMethodsWithRequestObj: `boolean` if true the request object will be added
+  as the first argument to the method call. Default is `false`.
+
+### Client
+
 #### createRemote(url, options, handleUnsuccessfulResponse)
 
 - `url: string` fetch data from
@@ -54,15 +67,6 @@ const greeting = await remote.sayHello("World") // Hello World
 - `handleUnsuccessfulResponse: (response: object => any)` this optional callback
   is called, with the returned response object as argument, if _fetch_ was not
   successful (status code outside the range 200-299).
-
-#### respondRpc(request, methods, { includeServerErrorStack, callMethodsWithRequestObj })
-
-- request: `ServerRequest`
-- methods: `{ [method: string]: (...args: any[]) => any }`
-- includeServerErrorStack: `boolean` detemines if the client's error objects may
-  contain the server's error stack. Default: `false`
-- callMethodsWithRequestObj: `boolean` if true the request object will be added
-  the first argument to the method call.
 
 #### remote.method(arguments)
 

@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@master
-      - name: Setup Deno
       - uses: denolib/setup-deno@master
         with:
           deno-version: 0.x

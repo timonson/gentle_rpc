@@ -30,7 +30,6 @@ export interface JsonRpcFailure extends JsonRpcResponseBasis {
 }
 
 export interface JsonRpcError {
-  /** Must be an integer */
   code: number
   message: string
   data?: any

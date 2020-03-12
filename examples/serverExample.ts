@@ -5,6 +5,8 @@ const s = serve("0.0.0.0:8000")
 const rpcMethods = {
   sayHello: (w: string) => `Hello ${w}`,
   animalsMakeNoise: (noise: string) => noise.toUpperCase(),
+  weCallThisMethod: (...words: string[]) =>
+    `Now comes a sentence of ${words.reduce((s, acc) => (acc += ` ${s}`))}`,
 }
 
 for await (const req of s) {

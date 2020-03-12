@@ -5,6 +5,8 @@ import {
   send,
   createRpcRequestObj,
   createRpcBatchObj,
+  Client,
+  BadServerDataError,
 } from "../rpcClient.ts"
 
 function subtract(minuend: number, subtrahend: number) {
@@ -237,4 +239,16 @@ Deno.test(async function makeRpcCallWithRequestObjectMockAsArgument(): Promise<
     JSON.parse(objSentToClient)
   )
 })
+
+Deno.test(async function handleResponseObjOnClientSide(): Promise<void> {
+  const client = new Client("testUrl")
+  const objSentToClient =
+    ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ] '
+  assertEquals(client.handleResponseData(JSON.parse(objSentToClient)), [
+    30,
+    19,
+    new BadServerDataError("Invalid Request", -32600),
+  ])
+})
+
 // await Deno.runTests()

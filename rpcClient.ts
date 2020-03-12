@@ -182,7 +182,6 @@ class Client {
   }
 
   private checkRpcResult(data: JsonRpcSuccess | JsonRpcFailure) {
-    console.log("result:", data)
     if (typeof data !== "object") {
       return new BadServerDataError("The sent back data is no object.", -32002)
     } else if ("result" in data) {

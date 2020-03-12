@@ -13,6 +13,7 @@ export interface JsonRpcRequest {
 }
 
 export type JsonRpcBatchRequest = JsonRpcRequest[]
+export type JsonRpcBatchResponse = JsonRpcResponse[]
 
 export type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure
 

@@ -239,7 +239,7 @@ function createObject(
     if ("id" in data) {
       return {
         jsonrpc: "2.0",
-        result: data.result,
+        result: data.result === undefined ? null : data.result, // can't return undefined
         id: data.id,
       }
     } else {

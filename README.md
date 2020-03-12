@@ -55,6 +55,7 @@ const greeting = await remote.sayHello("World") // Hello World
   contain the server's error stack. Default is `false`.
 - callMethodsWithRequestObj: `boolean` if true the request object will be added
   as the first argument to the method call. Default is `false`.
+- returns the rpc response object.
 
 ### Client
 
@@ -69,6 +70,7 @@ const greeting = await remote.sayHello("World") // Hello World
 - `handleUnsuccessfulResponse: (response: object => any)` this optional callback
   is called, with the returned response object as argument, if _fetch_ was not
   successful (status code outside the range 200-299).
+- returns a _remote_ object (proxy).
 
 #### remote.method(values)
 

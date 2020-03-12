@@ -111,7 +111,7 @@ class Client {
 
   async makeRpcCall(
     stringifiedRpcRequestObj: string,
-    giveOnlyBatchResultsToClient = true
+    shouldReturnBatchResultsAsArray = true
   ) {
     const rpcResponseObj = await send(
       this.url,
@@ -122,9 +122,9 @@ class Client {
       this.handleUnsuccessfulResponse
     )
     return Array.isArray(rpcResponseObj)
-      ? giveOnlyBatchResultsToClient
+      ? shouldReturnBatchResultsAsArray
         ? rpcResponseObj.reduce((acc, el) => {
-            acc.push(el.result)
+            if ("result" in el) acc.push(el.result)
             return acc
           }, [] as any[])
         : rpcResponseObj.reduce((acc, el) => {

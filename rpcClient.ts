@@ -1,15 +1,18 @@
 import {
   JsonRpcRequest,
+  JsonRpcResponse,
   JsonRpcBatchResponse,
   JsonRpcSuccess,
   JsonRpcFailure,
   JsonRpcParams,
   JsonRpcMethod,
   JsonRpcId,
+  JsonValue,
 } from "./jsonRpc2Types.ts"
 type RequestInit = __domTypes.RequestInit
+type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
 type AnyFunction = (...args: any[]) => any
-type Batches =
+type Batch =
   | [string, JsonRpcParams?][]
   | Record<string, [string, JsonRpcParams?]>
 
@@ -30,21 +33,20 @@ function send(
 ) {
   return fetch(url, fetchInit)
     .then((res: Response) => {
-      if (res.ok || !handleUnsuccessfulResponse) {
-        const contentType = res.headers.get("content-type")
-        if (contentType && contentType.includes("application/json")) {
-          return res.json()
-        } else {
-          return void 0
-        }
-      } else return handleUnsuccessfulResponse(res)
+      if (res.ok) {
+        // check if rpc was a notification
+        return res.text().then(text => (text ? JSON.parse(text) : undefined))
+      } else if (handleUnsuccessfulResponse) {
+        return handleUnsuccessfulResponse(res)
+      } else {
+        throw Error(`${res.statusText}: ${res.status}`)
+      }
     })
-    .catch(err => {
-      if (err instanceof BadServerDataError) return Promise.reject(err)
-      return Promise.reject(
+    .catch(err =>
+      Promise.reject(
         new BadServerDataError("Error in fetch API: " + err.message, -32001)
       )
-    })
+    )
 }
 
 function createRpcRequestObj(
@@ -61,13 +63,13 @@ function createRpcRequestObj(
   return rpcRequestObj
 }
 
-function createRpcBatchObj(batchObj: Batches, notification = false) {
+function createRpcBatchObj(batchObj: Batch, isNotification = false) {
   return Array.isArray(batchObj)
     ? batchObj.map(el =>
         createRpcRequestObj(
           el[0],
           el[1],
-          notification ? undefined : generateID()
+          isNotification ? undefined : generateID()
         )
       )
     : Object.entries(batchObj).map(([key, value]) =>
@@ -84,7 +86,7 @@ function generateID(size = 7): string {
 
 function createRemote(
   url: string,
-  options: RequestInit & { notification?: boolean; id?: JsonRpcId } = {},
+  options: Options = {},
   handleUnsuccessfulResponse?: AnyFunction
 ) {
   const handler = {
@@ -98,7 +100,7 @@ function createRemote(
               createRpcRequestObj(
                 name,
                 args,
-                options.notification ? undefined : options.id || generateID()
+                options.isNotification ? undefined : options.id || generateID()
               )
             )
           )
@@ -112,88 +114,93 @@ function createRemote(
 class Client {
   private url: string
   private fetchInit: RequestInit
+  private isNotification = false
   private handleUnsuccessfulResponse?: AnyFunction;
   [key: string]: any // necessary for es6 proxy
   constructor(
     url: string,
-    userOptions: RequestInit = {},
+    options: Options = {},
     handleUnsuccessfulResponse?: AnyFunction
   ) {
     this.url = url
+    this.isNotification = options.isNotification || false
     this.handleUnsuccessfulResponse = handleUnsuccessfulResponse
     this.fetchInit = {
-      ...userOptions,
-      headers: { ...userOptions.headers, "Content-Type": "application/json" },
+      ...options,
+      headers: { ...options.headers, "Content-Type": "application/json" },
     }
   }
 
   async makeRpcCall(
     stringifiedRpcRequestObj: string,
     shouldReturnBatchResultsAsArray = true
-  ) {
-    const rpcResponseObjOrBatch = await send(
+  ): Promise<JsonValue | undefined> {
+    const rpcResponseObjOrBatchOrUndefined = (await send(
       this.url,
       {
         ...this.fetchInit,
         body: stringifiedRpcRequestObj,
       },
       this.handleUnsuccessfulResponse
-    )
-    return this.handleResponseData(
-      rpcResponseObjOrBatch,
-      shouldReturnBatchResultsAsArray
-    )
+    )) as JsonRpcResponse | JsonRpcBatchResponse | undefined
+    return rpcResponseObjOrBatchOrUndefined === undefined
+      ? undefined
+      : this.handleResponseData(
+          rpcResponseObjOrBatchOrUndefined,
+          shouldReturnBatchResultsAsArray
+        )
   }
 
-  batch(batchObj: Batches, notification = false) {
+  batch(batchObj: Batch) {
     return this.makeRpcCall(
-      JSON.stringify(createRpcBatchObj(batchObj, notification)),
+      JSON.stringify(createRpcBatchObj(batchObj, this.isNotification)),
       Array.isArray(batchObj)
     )
   }
 
   handleResponseData(
-    rpcResponseObjOrBatch: JsonRpcBatchResponse,
+    rpcResponseObjOrBatch: JsonRpcResponse | JsonRpcBatchResponse,
     shouldReturnBatchResultsAsArray = true
   ) {
     if (Array.isArray(rpcResponseObjOrBatch)) {
       return shouldReturnBatchResultsAsArray
-        ? rpcResponseObjOrBatch.reduce((acc, rpcResponseObj) => {
+        ? rpcResponseObjOrBatch.reduce<JsonValue[]>((acc, rpcResponseObj) => {
             acc.push(this.checkRpcResult(rpcResponseObj))
             return acc
-          }, [] as any[])
-        : rpcResponseObjOrBatch.reduce((acc, rpcResponseObj) => {
-            if (rpcResponseObj.id !== null) {
-              acc[rpcResponseObj.id as string | number] = this.checkRpcResult(
-                rpcResponseObj
-              )
-              return acc
-            } else {
-              // id might be null
-              if ("null" in acc)
-                acc["null"].push(this.checkRpcResult(rpcResponseObj))
-              else acc["null"] = [this.checkRpcResult(rpcResponseObj)]
-              return acc
-            }
-          }, {} as any)
+          }, [])
+        : rpcResponseObjOrBatch.reduce<Record<string, JsonValue>>(
+            (acc, rpcResponseObj) => {
+              if (rpcResponseObj.id !== null) {
+                acc[rpcResponseObj.id] = this.checkRpcResult(rpcResponseObj)
+                return acc
+              } else {
+                // id might be null
+                if (Array.isArray(acc.null))
+                  acc["null"].push(this.checkRpcResult(rpcResponseObj))
+                else acc["null"] = [this.checkRpcResult(rpcResponseObj)]
+                return acc
+              }
+            },
+            {}
+          )
     } else {
       return this.checkRpcResult(rpcResponseObjOrBatch)
     }
   }
 
   private checkRpcResult(data: JsonRpcSuccess | JsonRpcFailure) {
-    if (typeof data !== "object") {
-      return new BadServerDataError("The sent back data is no object.", -32002)
-    } else if ("result" in data) {
-      return data.result
+    if (typeof data !== "object" || data === null) {
+      throw new BadServerDataError("The sent back data is no object.", -32002)
+    } else if ("result" in data && "id" in data) {
+      return data.result as JsonValue
     } else if (data.error) {
       const error = new BadServerDataError(data.error.message, data.error.code)
       // if error stack from server side has been transmitted, then use the server data:
       if (data.error.data) Object.assign(error, data.error.data)
-      return error
+      throw error
     } else
-      return new BadServerDataError(
-        "Data or Error Object is not present.",
+      throw new BadServerDataError(
+        "Received data is no RPC response object.",
         -32002
       )
   }

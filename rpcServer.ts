@@ -171,7 +171,7 @@ async function respondRpc(
           headers,
           status: 200,
         }
-      : { status: 200 }
+      : { status: 204 }
   )
   return resObject
 }

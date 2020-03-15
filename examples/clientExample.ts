@@ -1,6 +1,6 @@
 import { createRemote } from "../rpcClient.ts"
 const remote = createRemote("http://0.0.0.0:8000")
-// const remote = createRemote("http://0.0.0.0:8000", {}, true) // notification
+// const remote = createRemote("http://0.0.0.0:8000", { isNotification: true }) // notification
 
 const greeting = await remote.sayHello("World")
 

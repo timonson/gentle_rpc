@@ -9,7 +9,22 @@ import {
   JsonRpcId,
   JsonValue,
 } from "./jsonRpc2Types.ts"
-type RequestInit = __domTypes.RequestInit
+
+interface RequestInit {
+  body?: any
+  cache?: any
+  credentials?: any
+  headers?: any
+  integrity?: any
+  keepalive?: boolean
+  method?: string
+  mode?: any
+  redirect?: any
+  referrer?: any
+  referrerPolicy?: any
+  signal?: any
+  window?: any
+}
 type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
 type AnyFunction = (...args: any[]) => any
 type Batch =

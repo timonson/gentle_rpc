@@ -11,7 +11,7 @@ This library is accessible through the https://deno.land/x/ service.
   [**specification**](https://www.jsonrpc.org/specification)
 - Transfers data over the
   [**fetch API**](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-- Uses TypeScript native
+- Uses JavaScript/TypeScript native
   [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
   for a simple API on the client side
 
@@ -90,8 +90,8 @@ await remote.sayHello("World") // Hello World
 #### Batch Requests
 
 Additionally, to send several request objects at the same time, the client may
-send an array filled with request objects. You can do this on two different
-ways:
+send an array filled with request objects (an _rpc batch request_). You can do
+this in two different ways:
 
 ##### remote.batch([["method", ["arg1", "arg2"]], ["method", ["arg1", "arg2"]], ...])
 
@@ -107,9 +107,10 @@ const noise1 = await remote.batch([
 
 ##### remote.batch({key1: ["method", ["arg1", "arg2"]], key2: ["method", ["arg1", "arg2"]], ...})
 
-The way of making _batch_ requests uses the object keys (_cat, dog, donkey,
-dragon_) as RPC _request object ids_ under the hood. The returned result values
-will be assigned to these key. Let's take a look at the following example:
+This way of making _batch_ requests uses the object keys (_cat, dog, donkey,
+dragon_) as RPC _request object ids_ under the hood. The returned _rpc result_
+values will be assigned to these keys. Let's take a look at the following
+example:
 
 ```typescript
 const noise2 = await remote.batch({

@@ -26,10 +26,11 @@ interface RequestInit {
   window?: any
 }
 type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
-type AnyFunction = (...args: any[]) => any
 type Batch =
   | [string, JsonRpcParams?][]
   | Record<string, [string, JsonRpcParams?]>
+// no deno and browser universal response type yet
+type HandleResponse = (response: { [responseObjectProps: string]: any }) => any
 
 class BadServerDataError extends Error {
   name: string
@@ -44,7 +45,7 @@ class BadServerDataError extends Error {
 function send(
   url: string,
   fetchInit: RequestInit,
-  handleUnsuccessfulResponse?: AnyFunction
+  handleUnsuccessfulResponse?: HandleResponse
 ) {
   return fetch(url, fetchInit)
     .then((res: Response) => {
@@ -102,7 +103,7 @@ function generateID(size = 7): string {
 function createRemote(
   url: string,
   options: Options = {},
-  handleUnsuccessfulResponse?: AnyFunction
+  handleUnsuccessfulResponse?: HandleResponse
 ) {
   const handler = {
     get(client: Client, name: JsonRpcMethod) {
@@ -130,12 +131,12 @@ class Client {
   private url: string
   private fetchInit: RequestInit
   private isNotification = false
-  private handleUnsuccessfulResponse?: AnyFunction;
+  private handleUnsuccessfulResponse?: HandleResponse;
   [key: string]: any // necessary for es6 proxy
   constructor(
     url: string,
     options: Options = {},
-    handleUnsuccessfulResponse?: AnyFunction
+    handleUnsuccessfulResponse?: HandleResponse
   ) {
     this.url = url
     this.isNotification = options.isNotification || false
@@ -173,6 +174,7 @@ class Client {
     )
   }
 
+  // public for tests
   handleResponseData(
     rpcResponseObjOrBatch: JsonRpcResponse | JsonRpcBatchResponse,
     shouldReturnBatchResultsAsArray = true

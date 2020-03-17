@@ -9,7 +9,7 @@ This library is accessible through the https://deno.land/x/ service.
 
 - Complies with the JSON-RPC 2.0
   [**specification**](https://www.jsonrpc.org/specification)
-- Transfers data over the
+- Sends data with the
   [**fetch API**](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 - Uses JavaScript/TypeScript native
   [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)

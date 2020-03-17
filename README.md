@@ -55,13 +55,13 @@ const greeting = await remote.sayHello("World") // Hello World
   contain the server's error stack. Default is `false`.
 - callMethodsWithRequestObj: `boolean` if true the request object will be added
   as the first argument to the method call. Default is `false`.
-- returns the rpc response object.
+- returns the RPC response object.
 
 ### Client
 
 #### createRemote(url, options, handleUnsuccessfulResponse)
 
-- `url: string` the URL to *fetch* data from.
+- `url: string` the URL to _fetch_ data from.
 - `options: Options` this object sets the _fetch_ API options (_RequestInit_).
   Additionally it contains the two optional properties `notification: boolean`
   and `id: string | number`.
@@ -80,8 +80,8 @@ native JS/TS **Proxy** object.
 
 Any amount of arguments to the method calls is possible.
 
-The methods return the **result** or **error** property of the RPC response
-object as promise.
+The _remote methods_ return the **result** property of the RPC response object
+as promise.
 
 ```typescript
 await remote.sayHello("World") // Hello World
@@ -90,7 +90,7 @@ await remote.sayHello("World") // Hello World
 #### Batch Requests
 
 Additionally, to send several request objects at the same time, the client may
-send an array filled with request objects (an _rpc batch request_). You can do
+send an array filled with request objects (an _RPC batch request_). You can do
 this in two different ways:
 
 ##### remote.batch([["method", ["arg1", "arg2"]], ["method", ["arg1", "arg2"]], ...])
@@ -108,7 +108,7 @@ const noise1 = await remote.batch([
 ##### remote.batch({key1: ["method", ["arg1", "arg2"]], key2: ["method", ["arg1", "arg2"]], ...})
 
 This way of making _batch_ requests uses the object keys (_cat, dog, donkey,
-dragon_) as RPC _request object ids_ under the hood. The returned _rpc result_
+dragon_) as RPC _request object ids_ under the hood. The returned _RPC result_
 values will be assigned to these keys. Let's take a look at the following
 example:
 

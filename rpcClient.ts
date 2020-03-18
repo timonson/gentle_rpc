@@ -10,6 +10,8 @@ import {
   JsonValue,
 } from "./jsonRpc2Types.ts"
 
+// can't use type 'RequestInit' from deno or TS until the following issue is resolved:
+// https://github.com/denoland/deno/issues/3974
 interface RequestInit {
   body?: any
   cache?: any
@@ -29,8 +31,6 @@ type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
 type Batch =
   | [string, JsonRpcParams?][]
   | Record<string, [string, JsonRpcParams?]>
-// no deno and browser universal response type yet
-type HandleResponse = (response: { [responseObjectProps: string]: any }) => any
 
 class BadServerDataError extends Error {
   name: string
@@ -45,7 +45,7 @@ class BadServerDataError extends Error {
 function send(
   url: string,
   fetchInit: RequestInit,
-  handleUnsuccessfulResponse?: HandleResponse
+  handleUnsuccessfulResponse?: (res: Response) => any
 ) {
   return fetch(url, fetchInit)
     .then((res: Response) => {
@@ -103,7 +103,7 @@ function generateID(size = 7): string {
 function createRemote(
   url: string,
   options: Options = {},
-  handleUnsuccessfulResponse?: HandleResponse
+  handleUnsuccessfulResponse?: (res: Response) => any
 ) {
   const handler = {
     get(client: Client, name: JsonRpcMethod) {
@@ -131,12 +131,12 @@ class Client {
   private url: string
   private fetchInit: RequestInit
   private isNotification = false
-  private handleUnsuccessfulResponse?: HandleResponse;
+  private handleUnsuccessfulResponse?: (res: Response) => any;
   [key: string]: any // necessary for es6 proxy
   constructor(
     url: string,
     options: Options = {},
-    handleUnsuccessfulResponse?: HandleResponse
+    handleUnsuccessfulResponse?: (res: Response) => any
   ) {
     this.url = url
     this.isNotification = options.isNotification || false

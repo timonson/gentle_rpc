@@ -19,7 +19,9 @@ function sayHello(w: string) {
   return [`Hello ${w || "World"}`]
 }
 
-Deno.test(async function makeRpcCallWithPositionalParameters(): Promise<void> {
+Deno.test("makeRpcCallWithPositionalParameters", async function (): Promise<
+  void
+> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1}'
   const objSentToClient = '{"jsonrpc": "2.0", "result": 19, "id": 1}'
@@ -33,7 +35,7 @@ Deno.test(async function makeRpcCallWithPositionalParameters(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallWithNamedParameters(): Promise<void> {
+Deno.test("makeRpcCallWithNamedParameters", async function (): Promise<void> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "sum", "params": {"summand1": 23, "summand2": 42}, "id": "4"}'
   const objSentToClient = '{"jsonrpc": "2.0", "result": 65, "id": "4"}'
@@ -47,7 +49,7 @@ Deno.test(async function makeRpcCallWithNamedParameters(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallWithNoArguments(): Promise<void> {
+Deno.test("makeRpcCallWithNoArguments", async function (): Promise<void> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "sayHello", "id": "abc01"}'
   const objSentToClient =
@@ -62,7 +64,7 @@ Deno.test(async function makeRpcCallWithNoArguments(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallAsNotification(): Promise<void> {
+Deno.test("makeRpcCallAsNotification", async function (): Promise<void> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23]}'
   const objSentToClient = assertEquals(
@@ -72,7 +74,7 @@ Deno.test(async function makeRpcCallAsNotification(): Promise<void> {
   assertEquals(await handleData(objSentToServer, { subtract }), null)
 })
 
-Deno.test(async function makeRpcCallOfNonExistentMethod(): Promise<void> {
+Deno.test("makeRpcCallOfNonExistentMethod", async function (): Promise<void> {
   const objSentToServer = '{"jsonrpc": "2.0", "method": "foobar", "id": "1"}'
   const objSentToClient =
     '{"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "1"}'
@@ -88,7 +90,7 @@ Deno.test(async function makeRpcCallOfNonExistentMethod(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallWithInvalidJson(): Promise<void> {
+Deno.test("makeRpcCallWithInvalidJson", async function (): Promise<void> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]'
   const objSentToClient =
@@ -99,7 +101,9 @@ Deno.test(async function makeRpcCallWithInvalidJson(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcResponseIncludingErrorStack(): Promise<void> {
+Deno.test("makeRpcResponseIncludingErrorStack", async function (): Promise<
+  void
+> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]'
   const objSentToClient =
@@ -112,7 +116,9 @@ Deno.test(async function makeRpcResponseIncludingErrorStack(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallWithInvalidRequestObject(): Promise<void> {
+Deno.test("makeRpcCallWithInvalidRequestObject", async function (): Promise<
+  void
+> {
   const objSentToServer = '{"jsonrpc": "2.0", "method": 1, "params": "bar"}'
   const objSentToClient =
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}'
@@ -122,7 +128,7 @@ Deno.test(async function makeRpcCallWithInvalidRequestObject(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcBatchCallWithInvalidJson(): Promise<void> {
+Deno.test("makeRpcBatchCallWithInvalidJson", async function (): Promise<void> {
   const objSentToServer =
     '{"jsonrpc": "2.0", "method": "sum", "params": [1,2,4], "id": "1"}, {"jsonrpc": "2.0", "method"'
   const objSentToClient =
@@ -133,7 +139,7 @@ Deno.test(async function makeRpcBatchCallWithInvalidJson(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcCallWithEmptyArray(): Promise<void> {
+Deno.test("makeRpcCallWithEmptyArray", async function (): Promise<void> {
   const objSentToServer = "[]"
   const objSentToClient =
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}'
@@ -143,7 +149,7 @@ Deno.test(async function makeRpcCallWithEmptyArray(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcBatchCallWithInvalidBatch(): Promise<void> {
+Deno.test("makeRpcBatchCallWithInvalidBatch", async function (): Promise<void> {
   const objSentToServer = "[1]"
   const objSentToClient =
     ' [ {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ]'
@@ -160,7 +166,7 @@ Deno.test(async function makeRpcBatchCallWithInvalidBatch(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcBatchCallsAsNotifications(): Promise<void> {
+Deno.test("makeRpcBatchCallsAsNotifications", async function (): Promise<void> {
   const objSentToServer = `
 [
         {"jsonrpc": "2.0", "method": "sum", "params": {"summand1":10, "summand2":20}},
@@ -186,7 +192,7 @@ Deno.test(async function makeRpcBatchCallsAsNotifications(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcBatchCallWithIds(): Promise<void> {
+Deno.test("makeRpcBatchCallWithIds", async function (): Promise<void> {
   const objSentToServer = `
 [
         {"jsonrpc": "2.0", "method": "sum", "params": {"summand1":10, "summand2":20}, "id":"a1"},
@@ -210,7 +216,7 @@ Deno.test(async function makeRpcBatchCallWithIds(): Promise<void> {
   )
 })
 
-Deno.test(async function makeRpcBatchCall(): Promise<void> {
+Deno.test("makeRpcBatchCall", async function (): Promise<void> {
   const objSentToServer =
     '[ {"jsonrpc": "2.0", "method": "sum", "params": {"summand1":10,"summand2":20}, "id": "1"}, {"jsonrpc": "2.0", "method": "sayHello", "params": ["World"]}, {"jsonrpc": "2.0", "method": "subtract", "params": [42,23], "id": "2"}, {"foo": "boo"}, {"jsonrpc": "2.0", "method": "foo.get", "params": {"name": "myself"}, "id": "5"}, {"jsonrpc": "2.0", "method": "sayHello", "id": "9"} ]'
   const objSentToClient =
@@ -222,32 +228,38 @@ Deno.test(async function makeRpcBatchCall(): Promise<void> {
 })
 
 import { ServerRequest } from "https://deno.land/std/http/server.ts"
-Deno.test(async function makeRpcCallWithRequestObjectMockAsArgument(): Promise<
-  void
-> {
-  const objSentToServer =
-    '{"jsonrpc": "2.0", "method": "sayHello", "params": [],"id": 1}'
-  const objSentToClient =
-    '{"jsonrpc": "2.0", "result": ["Hello this is the response object duuh"], "id": 1}'
-  const responseObjectMock = "this is the response object duuh" as ServerRequest
-  assertEquals(
-    createRpcRequestObj("sayHello", [], 1),
-    JSON.parse(objSentToServer)
-  )
-  assertEquals(
-    await handleData(objSentToServer, { sayHello }, false, responseObjectMock),
-    JSON.parse(objSentToClient)
-  )
-})
+Deno.test(
+  "makeRpcCallWithRequestObjectMockAsArgument",
+  async function (): Promise<void> {
+    const objSentToServer =
+      '{"jsonrpc": "2.0", "method": "sayHello", "params": [],"id": 1}'
+    const objSentToClient =
+      '{"jsonrpc": "2.0", "result": ["Hello this is the response object duuh"], "id": 1}'
+    const responseObjectMock = "this is the response object duuh" as ServerRequest
+    assertEquals(
+      createRpcRequestObj("sayHello", [], 1),
+      JSON.parse(objSentToServer)
+    )
+    assertEquals(
+      await handleData(
+        objSentToServer,
+        { sayHello },
+        false,
+        responseObjectMock
+      ),
+      JSON.parse(objSentToClient)
+    )
+  }
+)
 
-Deno.test(async function handleResponseObjOnClientSide(): Promise<void> {
+Deno.test("handleResponseObjOnClientSide", async function (): Promise<void> {
   const client = new Client("testUrl")
   const objSentToClient =
     ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"} ] '
   assertEquals(client.handleResponseData(JSON.parse(objSentToClient)), [30, 19])
 })
 
-Deno.test(async function handleResponseObjOnClientSideWithError(): Promise<
+Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
   void
 > {
   const client = new Client("testUrl")

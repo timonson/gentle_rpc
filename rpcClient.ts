@@ -10,23 +10,6 @@ import {
   JsonValue,
 } from "./jsonRpc2Types.ts"
 
-// can't use type 'RequestInit' from deno or TS until the following issue is resolved:
-// https://github.com/denoland/deno/issues/3974
-interface RequestInit {
-  body?: any
-  cache?: any
-  credentials?: any
-  headers?: any
-  integrity?: any
-  keepalive?: boolean
-  method?: string
-  mode?: any
-  redirect?: any
-  referrer?: any
-  referrerPolicy?: any
-  signal?: any
-  window?: any
-}
 type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
 type Batch =
   | [string, JsonRpcParams?][]

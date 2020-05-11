@@ -23,6 +23,7 @@ This library is accessible through the https://deno.land/x/ service.
 import { serve, ServerRequest } from "https://deno.land/std/http/server.ts"
 import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts"
 
+console.log("listening on 0.0.0.0:8000")
 const s = serve("0.0.0.0:8000")
 const rpcMethods = {
   sayHello: (w: string) => `Hello ${w}`,
@@ -40,7 +41,8 @@ for await (const req of s) {
 import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts"
 
 const remote = createRemote("http://0.0.0.0:8000")
-const greeting = await remote.sayHello("World") // Hello World
+const greeting = await remote.sayHello("World") 
+console.log(greeting)  // Hello World
 ```
 
 ## API

@@ -10,7 +10,11 @@ import {
   JsonValue,
 } from "./jsonRpc2Types.ts"
 
-type Options = RequestInit & { isNotification?: boolean; id?: JsonRpcId }
+type Options = RequestInit & {
+  isNotification?: boolean
+  id?: JsonRpcId
+  handleUnsuccessfulResponse?: (res: Response) => any
+}
 type Batch =
   | [string, JsonRpcParams?][]
   | Record<string, [string, JsonRpcParams?]>
@@ -83,11 +87,7 @@ function generateID(size = 7): string {
   return str
 }
 
-function createRemote(
-  url: string,
-  options: Options = {},
-  handleUnsuccessfulResponse?: (res: Response) => any
-) {
+function createRemote(url: string, options: Options = {}) {
   const handler = {
     get(client: Client, name: JsonRpcMethod) {
       if ((client as any)[name] !== undefined) {
@@ -106,7 +106,7 @@ function createRemote(
       }
     },
   }
-  const client = new Client(url, options, handleUnsuccessfulResponse)
+  const client = new Client(url, options, options.handleUnsuccessfulResponse)
   return new Proxy(client, handler)
 }
 

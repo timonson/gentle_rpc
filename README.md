@@ -41,8 +41,8 @@ for await (const req of s) {
 import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts"
 
 const remote = createRemote("http://0.0.0.0:8000")
-const greeting = await remote.sayHello("World") 
-console.log(greeting)  // Hello World
+const greeting = await remote.sayHello("World")
+console.log(greeting) // Hello World
 ```
 
 ## API
@@ -61,18 +61,19 @@ console.log(greeting)  // Hello World
 
 ### Client
 
-#### createRemote(url, options, handleUnsuccessfulResponse)
+#### createRemote(url, options)
 
 - `url: string` the URL to _fetch_ data from.
 - `options: Options` this object sets the _fetch_ API options (_RequestInit_).
-  Additionally, it contains the two optional properties `notification: boolean`
-  and `id: string | number`.
+  Additionally, it contains the three optional properties
+  `notification: boolean`, `id: string | number` and
+  `handleUnsuccessfulResponse: (response: Response => any)`.
   - `notification` causes the server to make an empty response.
   - `id` defines a custom id.
-- `handleUnsuccessfulResponse: (response: Response => any)` this optional
-  callback is called if _fetch_ was not successful (status code outside the
-  range 200-299). It takes the returned response object as argument.
-- returns a _remote_ object (proxy).
+  - `handleUnsuccessfulResponse` contains an optional callback which is called
+    if _fetch_ was not successful (status code outside the range 200-299). It
+    takes the returned response object as argument.
+- returns a _remote_ proxy object (see below).
 
 #### remote.method(values)
 

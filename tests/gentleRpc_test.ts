@@ -235,7 +235,7 @@ Deno.test(
       '{"jsonrpc": "2.0", "method": "sayHello", "params": [],"id": 1}'
     const objSentToClient =
       '{"jsonrpc": "2.0", "result": ["Hello this is the response object duuh"], "id": 1}'
-    const responseObjectMock = "this is the response object duuh" as ServerRequest
+    const responseObjectMock = "this is the response object duuh" as unknown as ServerRequest
     assertEquals(
       createRpcRequestObj("sayHello", [], 1),
       JSON.parse(objSentToServer)
@@ -276,4 +276,3 @@ Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
   )
 })
 
-// await Deno.runTests()

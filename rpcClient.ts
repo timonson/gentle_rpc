@@ -164,30 +164,37 @@ class Client {
   ) {
     if (Array.isArray(rpcResponseObjOrBatch)) {
       return shouldReturnBatchResultsAsArray
-        ? rpcResponseObjOrBatch.reduce<JsonValue[]>((acc, rpcResponseObj) => {
-            acc.push(this.checkRpcResult(rpcResponseObj))
-            return acc
-          }, [])
-        : rpcResponseObjOrBatch.reduce<Record<string, JsonValue>>(
-            (acc, rpcResponseObj) => {
-              if (rpcResponseObj.id !== null) {
-                acc[rpcResponseObj.id] = this.checkRpcResult(rpcResponseObj)
-                return acc
-              } else {
-                // id might be null
-                if (Array.isArray(acc.null))
-                  acc["null"].push(this.checkRpcResult(rpcResponseObj))
-                else acc["null"] = [this.checkRpcResult(rpcResponseObj)]
-                return acc
-              }
-            },
-            {}
-          )
+        ? this.returnBatchAsArray(rpcResponseObjOrBatch)
+        : this.returnBatchAsObject(rpcResponseObjOrBatch)
     } else {
       return this.checkRpcResult(rpcResponseObjOrBatch)
     }
   }
 
+  private returnBatchAsArray(rpcResponseBatch: JsonRpcBatchResponse) {
+    return rpcResponseBatch.reduce<JsonValue[]>((acc, rpcResponseObj) => {
+      acc.push(this.checkRpcResult(rpcResponseObj))
+      return acc
+    }, [])
+  }
+
+  private returnBatchAsObject(rpcResponseBatch: JsonRpcBatchResponse) {
+    return rpcResponseBatch.reduce<Record<string, JsonValue>>(
+      (acc, rpcResponseObj) => {
+        if (rpcResponseObj.id !== null) {
+          acc[rpcResponseObj.id] = this.checkRpcResult(rpcResponseObj)
+          return acc
+        } else {
+          // id might be null
+          if (Array.isArray(acc.null))
+            acc["null"].push(this.checkRpcResult(rpcResponseObj))
+          else acc["null"] = [this.checkRpcResult(rpcResponseObj)]
+          return acc
+        }
+      },
+      {}
+    )
+  }
   private checkRpcResult(data: JsonRpcSuccess | JsonRpcFailure) {
     if (typeof data !== "object" || data === null) {
       throw new BadServerDataError("The sent back data is no object.", -32002)
@@ -195,7 +202,7 @@ class Client {
       return data.result as JsonValue
     } else if (data.error) {
       const error = new BadServerDataError(data.error.message, data.error.code)
-      // if error stack from server side has been transmitted, then use the server data:
+      // if error stack from server side has been transmitted, then use the server data
       if (data.error.data) Object.assign(error, data.error.data)
       throw error
     } else

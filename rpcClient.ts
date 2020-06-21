@@ -13,7 +13,7 @@ import {
 type Options = RequestInit & {
   isNotification?: boolean
   id?: JsonRpcId
-  handleUnsuccessfulResponse?: (res: Response) => any
+  handleUnsuccessfulResponse?: (res: Response) => unknown
 }
 type Batch =
   | [string, JsonRpcParams?][]
@@ -32,7 +32,7 @@ class BadServerDataError extends Error {
 function send(
   url: string,
   fetchInit: RequestInit,
-  handleUnsuccessfulResponse?: (res: Response) => any
+  handleUnsuccessfulResponse?: (res: Response) => unknown
 ) {
   return fetch(url, fetchInit)
     .then((res: Response) => {
@@ -114,12 +114,12 @@ class Client {
   private url: string
   private fetchInit: RequestInit
   private isNotification = false
-  private handleUnsuccessfulResponse?: (res: Response) => any;
+  private handleUnsuccessfulResponse?: (res: Response) => unknown;
   [key: string]: any // necessary for es6 proxy
   constructor(
     url: string,
     options: Options = {},
-    handleUnsuccessfulResponse?: (res: Response) => any
+    handleUnsuccessfulResponse?: (res: Response) => unknown
   ) {
     this.url = url
     this.isNotification = options.isNotification || false

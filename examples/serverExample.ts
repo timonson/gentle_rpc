@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std/http/server.ts"
+import { serve } from "https://deno.land/std@0.61.0/http/server.ts"
 import { respondRpc } from "../rpcServer.ts"
 
 console.log("listening on 0.0.0.0:8000")

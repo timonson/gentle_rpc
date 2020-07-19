@@ -1,4 +1,5 @@
-import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals } from "https://deno.land/std@0.61.0/testing/asserts.ts";
+import { ServerRequest } from "https://deno.land/std@0.61.0/http/server.ts";
 import { handleData } from "../rpcServer.ts";
 import {
   createRemote,
@@ -227,7 +228,6 @@ Deno.test("makeRpcBatchCall", async function (): Promise<void> {
   );
 });
 
-import { ServerRequest } from "https://deno.land/std/http/server.ts";
 Deno.test(
   "makeRpcCallWithRequestObjectMockAsArgument",
   async function (): Promise<void> {

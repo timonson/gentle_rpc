@@ -30,7 +30,7 @@ class BadServerDataError extends Error {
 }
 
 function send(
-  url: string,
+  url: URL,
   fetchInit: RequestInit,
   handleUnsuccessfulResponse?: (res: Response) => unknown
 ) {
@@ -87,7 +87,7 @@ function generateID(size = 7): string {
   return str
 }
 
-function createRemote(url: string, options: Options = {}) {
+function createRemote(url: URL, options: Options = {}) {
   const handler = {
     get(client: Client, name: JsonRpcMethod) {
       if ((client as any)[name] !== undefined) {
@@ -111,13 +111,13 @@ function createRemote(url: string, options: Options = {}) {
 }
 
 class Client {
-  private url: string
+  private url: URL
   private fetchInit: RequestInit
   private isNotification = false
   private handleUnsuccessfulResponse?: (res: Response) => unknown;
   [key: string]: any // necessary for es6 proxy
   constructor(
-    url: string,
+    url: URL,
     options: Options = {},
     handleUnsuccessfulResponse?: (res: Response) => unknown
   ) {

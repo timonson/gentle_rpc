@@ -40,7 +40,13 @@ for await (const req of s) {
 ```typescript
 import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts"
 
-const remote = createRemote("http://0.0.0.0:8000")
+
+let myUrl = new URL("http://127.0.0.1")
+myUrl.port = "8000"
+myUrl.username = "RPC_Username"
+myUrl.password = "RPC_Password"
+
+const remote = createRemote(myUrl)
 const greeting = await remote.sayHello("World")
 console.log(greeting) // Hello World
 ```
@@ -63,7 +69,7 @@ console.log(greeting) // Hello World
 
 #### createRemote(url, options)
 
-- `url: string` the URL to _fetch_ data from.
+- `url: URL` the URL to _fetch_ data from.
 - `options: Options` this object sets the _fetch_ API options (_RequestInit_).
   Additionally, it contains the three optional properties
   `notification: boolean`, `id: string | number` and

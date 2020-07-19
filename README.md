@@ -20,35 +20,29 @@ This library is accessible through the https://deno.land/x/ service.
 #### Server/deno side
 
 ```typescript
-import { serve, ServerRequest } from "https://deno.land/std/http/server.ts"
-import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts"
+import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
+import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts";
 
-console.log("listening on 0.0.0.0:8000")
-const s = serve("0.0.0.0:8000")
+console.log("listening on 0.0.0.0:8000");
+const s = serve("0.0.0.0:8000");
 const rpcMethods = {
   sayHello: (w: string) => `Hello ${w}`,
   animalsMakeNoise: (noise: string) => noise.toUpperCase(),
-}
+};
 
 for await (const req of s) {
-  await respondRpc(req, rpcMethods)
+  await respondRpc(req, rpcMethods);
 }
 ```
 
 #### Client/remote side
 
 ```typescript
-import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts"
+import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts";
 
-
-let myUrl = new URL("http://127.0.0.1")
-myUrl.port = "8000"
-myUrl.username = "RPC_Username"
-myUrl.password = "RPC_Password"
-
-const remote = createRemote(myUrl)
-const greeting = await remote.sayHello("World")
-console.log(greeting) // Hello World
+const remote = createRemote("http://0.0.0.0:8000");
+const greeting = await remote.sayHello("World");
+console.log(greeting); // Hello World
 ```
 
 ## API
@@ -69,7 +63,7 @@ console.log(greeting) // Hello World
 
 #### createRemote(url, options)
 
-- `url: URL` the URL to _fetch_ data from.
+- `url: string | URL | Request` the URL to _fetch_ data from.
 - `options: Options` this object sets the _fetch_ API options (_RequestInit_).
   Additionally, it contains the three optional properties
   `notification: boolean`, `id: string | number` and
@@ -93,7 +87,7 @@ The _remote methods_ return the **result** property of the RPC response object
 as promise.
 
 ```typescript
-await remote.sayHello("World") // Hello World
+await remote.sayHello("World"); // Hello World
 ```
 
 #### Batch Requests
@@ -110,7 +104,7 @@ const noise1 = await remote.batch([
   ["animalsMakeNoise", ["wuuuufu"]],
   ["animalsMakeNoise", ["iaaaiaia"]],
   ["animalsMakeNoise", ["fiiiiire"]],
-])
+]);
 // [ "MIAAOW", "WUUUUFU", "IAAAIAIA", "FIIIIIRE" ]
 ```
 
@@ -127,7 +121,7 @@ const noise2 = await remote.batch({
   dog: ["animalsMakeNoise", ["wuuuufu"]],
   donkey: ["animalsMakeNoise", ["iaaaiaia"]],
   dragon: ["animalsMakeNoise", ["fiiiiire"]],
-})
+});
 // { cat: "MIAAOW", dog: "WUUUUFU", donkey: "IAAAIAIA", dragon: "FIIIIIRE" }
 ```
 

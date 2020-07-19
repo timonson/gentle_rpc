@@ -1,4 +1,4 @@
-import { serve, ServerRequest } from "https://deno.land/std/http/server.ts"
+import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 import {
   JsonRpcRequest,
   JsonRpcSuccess,
@@ -7,54 +7,54 @@ import {
   JsonValue,
   JsonArray,
   JsonObject,
-} from "./jsonRpc2Types.ts"
-type ResultOrError = { id: JsonRpcId | undefined; result: any } | ServerError
+} from "./jsonRpc2Types.ts";
+type ResultOrError = { id: JsonRpcId | undefined; result: any } | ServerError;
 type NotNotification =
   | { id: JsonRpcId; result: any }
   | (Omit<ServerError, "rpcRequestID"> & {
-      rpcRequestID: JsonRpcId
-    })
-type ResponseTypes = JsonRpcSuccess | JsonRpcFailure
+      rpcRequestID: JsonRpcId;
+    });
+type ResponseTypes = JsonRpcSuccess | JsonRpcFailure;
 
 class ServerError extends Error {
-  rpcErrorID: number
-  rpcRequestID: JsonRpcId | undefined
+  rpcErrorID: number;
+  rpcRequestID: JsonRpcId | undefined;
   constructor(
     rpcErrorID: number,
     message: string,
     rpcRequestID: JsonRpcId | undefined
   ) {
-    super(message)
-    this.rpcErrorID = rpcErrorID
-    this.rpcRequestID = rpcRequestID
+    super(message);
+    this.rpcErrorID = rpcErrorID;
+    this.rpcRequestID = rpcRequestID;
   }
 }
 
 function isJsonRpcVersion(input: any): input is "2.0" {
-  return input === "2.0"
+  return input === "2.0";
 }
 function isJsonRpcMethod(input: any): input is string {
-  return typeof input === "string" && !input.startsWith("rpc.")
+  return typeof input === "string" && !input.startsWith("rpc.");
 }
 function isJsonRpcParams(input: any): input is JsonArray | JsonObject {
-  return typeof input === "object"
+  return typeof input === "object";
 }
 function isJsonRpcId(input: any): input is JsonRpcId {
   switch (typeof input) {
     case "string":
-      return true
+      return true;
     case "number":
-      return input % 1 === 0
+      return input % 1 === 0;
     case "object":
-      let isNull = input === null
+      let isNull = input === null;
       if (isNull) {
-        console.warn("Use of null ID in JSONRPC 2.0 is discouraged.")
-        return true
+        console.warn("Use of null ID in JSONRPC 2.0 is discouraged.");
+        return true;
       } else {
-        return false
+        return false;
       }
     default:
-      return false
+      return false;
   }
 }
 
@@ -62,7 +62,7 @@ function validateRpcObj(
   decodedBody: JsonValue | ServerError,
   methods: { [method: string]: (...args: any[]) => any }
 ): JsonRpcRequest | ServerError {
-  if (decodedBody instanceof ServerError) return decodedBody
+  if (decodedBody instanceof ServerError) return decodedBody;
   if (
     typeof decodedBody === "object" &&
     !Array.isArray(decodedBody) &&
@@ -76,7 +76,7 @@ function validateRpcObj(
         -32600,
         "Invalid Request",
         isJsonRpcId(decodedBody.id) ? decodedBody.id : null
-      )
+      );
     else if (typeof methods[decodedBody.method] !== "function")
       return new ServerError(
         -32601,
@@ -86,7 +86,7 @@ function validateRpcObj(
             ? decodedBody.id
             : null
           : undefined
-      )
+      );
     else if ("params" in decodedBody && typeof decodedBody.params !== "object")
       return new ServerError(
         -32602,
@@ -96,15 +96,15 @@ function validateRpcObj(
             ? decodedBody.id
             : null
           : undefined
-      )
+      );
     else {
       return "id" in decodedBody
         ? isJsonRpcId(decodedBody.id)
           ? ((decodedBody as unknown) as JsonRpcRequest)
           : new ServerError(-32600, "Invalid Request", null)
-        : ({ ...decodedBody, id: undefined } as JsonRpcRequest)
+        : ({ ...decodedBody, id: undefined } as JsonRpcRequest);
     }
-  } else return new ServerError(-32600, "Invalid Request", null)
+  } else return new ServerError(-32600, "Invalid Request", null);
 }
 
 async function executeMethods(
@@ -113,7 +113,7 @@ async function executeMethods(
   req?: ServerRequest
 ): Promise<ResultOrError> {
   try {
-    if (rpcReqObj instanceof ServerError) return rpcReqObj
+    if (rpcReqObj instanceof ServerError) return rpcReqObj;
     else {
       if (req)
         return Array.isArray(rpcReqObj.params)
@@ -127,7 +127,7 @@ async function executeMethods(
                 req,
               }),
               id: rpcReqObj.id,
-            }
+            };
       else {
         return Array.isArray(rpcReqObj.params)
           ? {
@@ -137,7 +137,7 @@ async function executeMethods(
           : {
               result: await methods[rpcReqObj.method](rpcReqObj.params),
               id: rpcReqObj.id,
-            }
+            };
       }
     }
   } catch (err) {
@@ -149,7 +149,7 @@ async function executeMethods(
           ? rpcReqObj.id
           : null
         : undefined
-    )
+    );
   }
 }
 
@@ -158,12 +158,12 @@ async function respondRpc(
   methods: { [method: string]: (...args: any[]) => any },
   { includeServerErrorStack = false, callMethodsWithRequestObj = false } = {}
 ) {
-  const decodedBody = new TextDecoder().decode(await Deno.readAll(req.body))
+  const decodedBody = new TextDecoder().decode(await Deno.readAll(req.body));
   const resObject = callMethodsWithRequestObj
     ? await handleData(decodedBody, methods, includeServerErrorStack, req)
-    : await handleData(decodedBody, methods, includeServerErrorStack)
-  const headers = new Headers()
-  headers.set("content-type", "application/json")
+    : await handleData(decodedBody, methods, includeServerErrorStack);
+  const headers = new Headers();
+  headers.set("content-type", "application/json");
   req.respond(
     resObject
       ? {
@@ -172,15 +172,15 @@ async function respondRpc(
           status: 200,
         }
       : { status: 204 }
-  )
-  return resObject
+  );
+  return resObject;
 }
 
 function parseJson(json: string): JsonValue | ServerError {
   try {
-    return JSON.parse(json)
+    return JSON.parse(json);
   } catch (err) {
-    return new ServerError(-32700, "Parse error", null)
+    return new ServerError(-32700, "Parse error", null);
   }
 }
 
@@ -190,7 +190,7 @@ async function handleData(
   includeServerErrorStack = false,
   req?: ServerRequest
 ): Promise<ResponseTypes | ResponseTypes[] | null> {
-  const data = parseJson(decodedBody)
+  const data = parseJson(decodedBody);
   const result: ResultOrError | ResultOrError[] =
     Array.isArray(data) && data.length > 0
       ? await Promise.all(
@@ -204,8 +204,8 @@ async function handleData(
         )
       : req
       ? await executeMethods(validateRpcObj(data, methods), methods, req)
-      : await executeMethods(validateRpcObj(data, methods), methods)
-  return createRPCResponseObject(result, includeServerErrorStack)
+      : await executeMethods(validateRpcObj(data, methods), methods);
+  return createRPCResponseObject(result, includeServerErrorStack);
 }
 
 function createRPCResponseObject(
@@ -218,10 +218,10 @@ function createRPCResponseObject(
       .filter(
         (result: ResponseTypes | null): result is ResponseTypes =>
           result != null
-      )
-    return responseBatchObj.length > 0 ? responseBatchObj : null
+      );
+    return responseBatchObj.length > 0 ? responseBatchObj : null;
   } else {
-    return createObject(result, includeServerErrorStack)
+    return createObject(result, includeServerErrorStack);
   }
 }
 
@@ -233,7 +233,7 @@ function createObject(
     return (
       ("id" in result && result.id !== undefined) ||
       (result instanceof ServerError && result.rpcRequestID !== undefined)
-    )
+    );
   }
   if (isNotNotification(data)) {
     if ("id" in data) {
@@ -241,7 +241,7 @@ function createObject(
         jsonrpc: "2.0",
         result: data.result === undefined ? null : data.result, // can't return undefined
         id: data.id,
-      }
+      };
     } else {
       const rpcResObj: JsonRpcFailure = {
         jsonrpc: "2.0",
@@ -250,14 +250,14 @@ function createObject(
           message: data.message,
         },
         id: data.rpcRequestID,
-      }
+      };
       if (data.stack && includeServerErrorStack)
-        rpcResObj.error.data = { stack: data.stack }
-      return rpcResObj
+        rpcResObj.error.data = { stack: data.stack };
+      return rpcResObj;
     }
   } else {
-    return null
+    return null;
   }
 }
 
-export { respondRpc, handleData }
+export { respondRpc, handleData };

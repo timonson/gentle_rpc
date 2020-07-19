@@ -126,6 +126,7 @@ class Client {
     this.handleUnsuccessfulResponse = handleUnsuccessfulResponse
     this.fetchInit = {
       ...options,
+      method: "POST",
       headers: { ...options.headers, "Content-Type": "application/json" },
     }
   }

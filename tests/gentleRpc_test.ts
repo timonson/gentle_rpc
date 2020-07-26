@@ -1,5 +1,5 @@
-import { assertEquals } from "https://deno.land/std@0.61.0/testing/asserts.ts";
-import { ServerRequest } from "https://deno.land/std@0.61.0/http/server.ts";
+import { assertEquals } from "https://deno.land/std@0.62.0/testing/asserts.ts";
+import { ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
 import { handleData } from "../rpcServer.ts";
 import {
   createRemote,

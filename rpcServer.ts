@@ -1,4 +1,7 @@
-import { serve, ServerRequest } from "https://deno.land/std@0.61.0/http/server.ts";
+import {
+  serve,
+  ServerRequest,
+} from "https://deno.land/std@0.62.0/http/server.ts";
 import {
   JsonRpcRequest,
   JsonRpcSuccess,
@@ -8,13 +11,16 @@ import {
   JsonArray,
   JsonObject,
 } from "./jsonRpc2Types.ts";
-type ResultOrError = { id: JsonRpcId | undefined; result: any } | ServerError;
+type ResultOrError =
+  | { id: JsonRpcId | undefined; result: unknown }
+  | ServerError;
 type NotNotification =
-  | { id: JsonRpcId; result: any }
+  | { id: JsonRpcId; result: unknown }
   | (Omit<ServerError, "rpcRequestID"> & {
       rpcRequestID: JsonRpcId;
     });
 type ResponseTypes = JsonRpcSuccess | JsonRpcFailure;
+type Methods = { [method: string]: (...args: any[]) => unknown };
 
 class ServerError extends Error {
   rpcErrorID: number;
@@ -30,16 +36,16 @@ class ServerError extends Error {
   }
 }
 
-function isJsonRpcVersion(input: any): input is "2.0" {
+function isJsonRpcVersion(input: unknown): input is "2.0" {
   return input === "2.0";
 }
-function isJsonRpcMethod(input: any): input is string {
+function isJsonRpcMethod(input: unknown): input is string {
   return typeof input === "string" && !input.startsWith("rpc.");
 }
-function isJsonRpcParams(input: any): input is JsonArray | JsonObject {
+function isJsonRpcParams(input: unknown): input is JsonArray | JsonObject {
   return typeof input === "object";
 }
-function isJsonRpcId(input: any): input is JsonRpcId {
+function isJsonRpcId(input: unknown): input is JsonRpcId {
   switch (typeof input) {
     case "string":
       return true;
@@ -60,7 +66,7 @@ function isJsonRpcId(input: any): input is JsonRpcId {
 
 function validateRpcObj(
   decodedBody: JsonValue | ServerError,
-  methods: { [method: string]: (...args: any[]) => any }
+  methods: Methods
 ): JsonRpcRequest | ServerError {
   if (decodedBody instanceof ServerError) return decodedBody;
   if (
@@ -109,7 +115,7 @@ function validateRpcObj(
 
 async function executeMethods(
   rpcReqObj: JsonRpcRequest | ServerError,
-  methods: { [method: string]: (...args: any[]) => any },
+  methods: Methods,
   req?: ServerRequest
 ): Promise<ResultOrError> {
   try {
@@ -155,7 +161,7 @@ async function executeMethods(
 
 async function respondRpc(
   req: ServerRequest,
-  methods: { [method: string]: (...args: any[]) => any },
+  methods: Methods,
   { includeServerErrorStack = false, callMethodsWithRequestObj = false } = {}
 ) {
   const decodedBody = new TextDecoder().decode(await Deno.readAll(req.body));
@@ -186,7 +192,7 @@ function parseJson(json: string): JsonValue | ServerError {
 
 async function handleData(
   decodedBody: string,
-  methods: { [method: string]: (...args: any[]) => any },
+  methods: Methods,
   includeServerErrorStack = false,
   req?: ServerRequest
 ): Promise<ResponseTypes | ResponseTypes[] | null> {
@@ -229,7 +235,7 @@ function createObject(
   data: ResultOrError,
   includeServerErrorStack: boolean
 ): ResponseTypes | null {
-  function isNotNotification(result: any): result is NotNotification {
+  function isNotNotification(result: ResultOrError): result is NotNotification {
     return (
       ("id" in result && result.id !== undefined) ||
       (result instanceof ServerError && result.rpcRequestID !== undefined)

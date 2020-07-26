@@ -20,7 +20,7 @@ This library is accessible through the https://deno.land/x/ service.
 #### Server/deno side
 
 ```typescript
-import { serve, ServerRequest } from "https://deno.land/std@0.61.0/http/server.ts";
+import { serve, ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
 import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts";
 
 console.log("listening on 0.0.0.0:8000");
@@ -52,7 +52,7 @@ console.log(greeting); // Hello World
 #### respondRpc(request, methods, { includeServerErrorStack, callMethodsWithRequestObj })
 
 - request: `ServerRequest`
-- methods: `{ [method: string]: (...args: any[]) => any }`
+- methods: `{ [method: string]: (...args: any[]) => unknown }`
 - includeServerErrorStack: `boolean` detemines if the client's error objects may
   contain the server's error stack. Default is `false`.
 - callMethodsWithRequestObj: `boolean` if true the request object will be added

@@ -1,7 +1,4 @@
-import {
-  serve,
-  ServerRequest,
-} from "https://deno.land/std@0.62.0/http/server.ts";
+import { ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
 import {
   JsonRpcRequest,
   JsonRpcSuccess,

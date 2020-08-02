@@ -17,6 +17,9 @@ This library is accessible through the https://deno.land/x/ service.
 
 ## Example
 
+Always use versioned imports for your dependencies. For example
+`https://deno.land/x/gentleRpc@v1.2/rpcServer.ts`.
+
 #### Server/deno side
 
 ```typescript
@@ -125,9 +128,14 @@ const noise2 = await remote.batch({
 // { cat: "MIAAOW", dog: "WUUUUFU", donkey: "IAAAIAIA", dragon: "FIIIIIRE" }
 ```
 
-### Examples and Tests
+## Examples and Tests
 
 Checkout the
 [examples](https://github.com/timonson/gentleRpc/tree/master/examples) and
 [tests](https://github.com/timonson/gentleRpc/tree/master/tests) folders for
 more detailed examples.
+
+## Contribution
+
+Every kind of contribution to this project is highly appreciated.  
+Please run `deno fmt` on the changed files before making a pull request.

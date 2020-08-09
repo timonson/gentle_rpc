@@ -1,22 +1,22 @@
-import { createRemote } from "../rpcClient.ts"
-const remote = createRemote("http://0.0.0.0:8000")
+import { createRemote } from "../rpcClient.ts";
+const remote = createRemote("http://0.0.0.0:8000");
 // const remote = createRemote("http://0.0.0.0:8000", { isNotification: true }) // notification
 
-const greeting = await remote.sayHello("World")
+const greeting = await remote.sayHello("World");
 
 const noise1 = await remote.batch([
   ["animalsMakeNoise", ["miaaow"]],
   ["animalsMakeNoise", ["wuuuufu"]],
   ["animalsMakeNoise", ["iaaaiaia"]],
   ["animalsMakeNoise", ["fiiiiire"]],
-])
+]);
 
 const noise2 = await remote.batch({
   cat: ["animalsMakeNoise", ["miaaow"]],
   dog: ["animalsMakeNoise", ["wuuuufu"]],
   donkey: ["animalsMakeNoise", ["iaaaiaia"]],
   dragon: ["animalsMakeNoise", ["fiiiiire"]],
-})
+});
 
 const sentence = await remote.weCallThisMethod(
   "a",
@@ -24,9 +24,18 @@ const sentence = await remote.weCallThisMethod(
   "of",
   "cool",
   "words"
-)
+);
 
-console.log(greeting)
-console.log(noise1)
-console.log(noise2)
-console.log(sentence)
+let noise3 = await remote.batch([
+  ["animalsMakeNoise", ["miaaow"]],
+  ["animalsMakeNoise", ["wuuuufu"]],
+  ["animalsMakeNoise", ["iaaaiaia"]],
+  ["animalsMakeNoise", ["fiiiiire"]],
+]);
+
+// noise3 = { a: 3 };
+
+console.log(greeting);
+console.log(noise1);
+console.log(noise2);
+console.log(sentence);

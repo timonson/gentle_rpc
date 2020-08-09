@@ -1,6 +1,7 @@
 import { ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
 import {
   JsonRpcRequest,
+  JsonRpcResponseBasis,
   JsonRpcSuccess,
   JsonRpcFailure,
   JsonRpcId,
@@ -16,7 +17,9 @@ type NotNotification =
   | (Omit<ServerError, "rpcRequestID"> & {
       rpcRequestID: JsonRpcId;
     });
-type ResponseTypes = JsonRpcSuccess | JsonRpcFailure;
+type ResponseTypes =
+  | (JsonRpcResponseBasis & { result: unknown })
+  | JsonRpcFailure;
 type Methods = { [method: string]: (...args: any[]) => unknown };
 
 class ServerError extends Error {
@@ -90,7 +93,7 @@ function validateRpcObj(
             : null
           : undefined
       );
-    else if ("params" in decodedBody && typeof decodedBody.params !== "object")
+    else if ("params" in decodedBody && !isJsonRpcParams(decodedBody.params))
       return new ServerError(
         -32602,
         "Invalid parameters",
@@ -238,29 +241,27 @@ function createObject(
       (result instanceof ServerError && result.rpcRequestID !== undefined)
     );
   }
-  if (isNotNotification(data)) {
-    if ("id" in data) {
-      return {
-        jsonrpc: "2.0",
-        result: data.result === undefined ? null : data.result, // can't return undefined
-        id: data.id,
-      };
-    } else {
-      const rpcResObj: JsonRpcFailure = {
-        jsonrpc: "2.0",
-        error: {
-          code: data.rpcErrorID || -32603,
-          message: data.message,
-        },
-        id: data.rpcRequestID,
-      };
-      if (data.stack && includeServerErrorStack)
-        rpcResObj.error.data = { stack: data.stack };
-      return rpcResObj;
-    }
+  if (isNotNotification(data) && "id" in data) {
+    return {
+      jsonrpc: "2.0",
+      result: data.result === undefined ? null : data.result, // can't return undefined
+      id: data.id,
+    };
+  } else if (isNotNotification(data) && "rpcErrorID" in data) {
+    const rpcResObj: JsonRpcFailure = {
+      jsonrpc: "2.0",
+      error: {
+        code: data.rpcErrorID || -32603,
+        message: data.message,
+      },
+      id: data.rpcRequestID,
+    };
+    if (data.stack && includeServerErrorStack)
+      rpcResObj.error.data = { stack: data.stack };
+    return rpcResObj;
   } else {
     return null;
   }
 }
 
-export { respondRpc, handleData };
+export { respondRpc, handleData, validateRpcObj };

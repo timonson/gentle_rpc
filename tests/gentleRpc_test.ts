@@ -1,4 +1,7 @@
-import { assertEquals } from "https://deno.land/std@0.62.0/testing/asserts.ts";
+import {
+  assertEquals,
+  assertThrowsAsync,
+} from "https://deno.land/std@0.62.0/testing/asserts.ts";
 import { ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
 import { handleData } from "../rpcServer.ts";
 import {
@@ -9,6 +12,7 @@ import {
   Client,
   BadServerDataError,
 } from "../rpcClient.ts";
+import { JsonValue } from "../jsonRpc2Types.ts";
 
 function subtract(minuend: number, subtrahend: number) {
   return minuend - subtrahend;
@@ -48,6 +52,16 @@ Deno.test("makeRpcCallWithNamedParameters", async function (): Promise<void> {
     await handleData(objSentToServer, { sum }),
     JSON.parse(objSentToClient)
   );
+});
+
+Deno.test("makeRpcCallWithInvalidParameters", async function (): Promise<void> {
+  const objSentToServer =
+    '{"jsonrpc": "2.0", "method": "sum", "params": "invalid", "id": "4"}';
+  assertEquals(await handleData(objSentToServer, { sum }), {
+    jsonrpc: "2.0",
+    error: { code: -32602, message: "Invalid parameters" },
+    id: "4",
+  });
 });
 
 Deno.test("makeRpcCallWithNoArguments", async function (): Promise<void> {
@@ -256,10 +270,12 @@ Deno.test("handleResponseObjOnClientSide", async function (): Promise<void> {
   const client = new Client("testUrl");
   const objSentToClient =
     ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"} ] ';
-  assertEquals(client.handleResponseData(JSON.parse(objSentToClient)), [
-    30,
-    19,
-  ]);
+  assertEquals(
+    client.handleResponseData(JSON.parse(objSentToClient)) as
+      | JsonValue
+      | BadServerDataError[],
+    [30, 19]
+  );
 });
 
 Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
@@ -271,12 +287,13 @@ Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
   try {
     var handledResponse = client.handleResponseData(
       JSON.parse(objSentToClient)
-    );
+    ) as JsonValue | BadServerDataError[];
   } catch (err) {
     handledResponse = err;
   }
-  assertEquals(
-    handledResponse,
-    new BadServerDataError("Invalid Request", -32600)
-  );
+  assertEquals(handledResponse, [
+    30,
+    19,
+    new BadServerDataError("Invalid Request", -32600),
+  ]);
 });

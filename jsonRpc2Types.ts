@@ -23,7 +23,7 @@ export interface JsonRpcResponseBasis {
 }
 
 export interface JsonRpcSuccess extends JsonRpcResponseBasis {
-  result: any;
+  result: JsonValue;
 }
 
 export interface JsonRpcFailure extends JsonRpcResponseBasis {
@@ -33,7 +33,7 @@ export interface JsonRpcFailure extends JsonRpcResponseBasis {
 export interface JsonRpcError {
   code: number;
   message: string;
-  data?: any;
+  data?: JsonValue;
 }
 
 export type JsonPrimitive = string | number | boolean | null;

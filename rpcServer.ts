@@ -15,8 +15,8 @@ type ResultOrError =
 type NotNotification =
   | { id: JsonRpcId; result: unknown }
   | (Omit<ServerError, "rpcRequestID"> & {
-      rpcRequestID: JsonRpcId;
-    });
+    rpcRequestID: JsonRpcId;
+  });
 type ResponseTypes =
   | (JsonRpcResponseBasis & { result: unknown })
   | JsonRpcFailure;
@@ -28,7 +28,7 @@ class ServerError extends Error {
   constructor(
     rpcErrorID: number,
     message: string,
-    rpcRequestID: JsonRpcId | undefined
+    rpcRequestID: JsonRpcId | undefined,
   ) {
     super(message);
     this.rpcErrorID = rpcErrorID;
@@ -66,7 +66,7 @@ function isJsonRpcId(input: unknown): input is JsonRpcId {
 
 function validateRpcObj(
   decodedBody: JsonValue | ServerError,
-  methods: Methods
+  methods: Methods,
 ): JsonRpcRequest | ServerError {
   if (decodedBody instanceof ServerError) return decodedBody;
   if (
@@ -77,33 +77,31 @@ function validateRpcObj(
     if (
       !isJsonRpcVersion(decodedBody.jsonrpc) ||
       !isJsonRpcMethod(decodedBody.method)
-    )
+    ) {
       return new ServerError(
         -32600,
         "Invalid Request",
-        isJsonRpcId(decodedBody.id) ? decodedBody.id : null
+        isJsonRpcId(decodedBody.id) ? decodedBody.id : null,
       );
-    else if (typeof methods[decodedBody.method] !== "function")
+    } else if (typeof methods[decodedBody.method] !== "function") {
       return new ServerError(
         -32601,
         "Method not found",
         "id" in decodedBody
-          ? isJsonRpcId(decodedBody.id)
-            ? decodedBody.id
-            : null
-          : undefined
+          ? isJsonRpcId(decodedBody.id) ? decodedBody.id : null
+          : undefined,
       );
-    else if ("params" in decodedBody && !isJsonRpcParams(decodedBody.params))
+    } else if (
+      "params" in decodedBody && !isJsonRpcParams(decodedBody.params)
+    ) {
       return new ServerError(
         -32602,
         "Invalid parameters",
         "id" in decodedBody
-          ? isJsonRpcId(decodedBody.id)
-            ? decodedBody.id
-            : null
-          : undefined
+          ? isJsonRpcId(decodedBody.id) ? decodedBody.id : null
+          : undefined,
       );
-    else {
+    } else {
       return "id" in decodedBody
         ? isJsonRpcId(decodedBody.id)
           ? ((decodedBody as unknown) as JsonRpcRequest)
@@ -116,34 +114,34 @@ function validateRpcObj(
 async function executeMethods(
   rpcReqObj: JsonRpcRequest | ServerError,
   methods: Methods,
-  req?: ServerRequest
+  req?: ServerRequest,
 ): Promise<ResultOrError> {
   try {
     if (rpcReqObj instanceof ServerError) return rpcReqObj;
     else {
-      if (req)
+      if (req) {
         return Array.isArray(rpcReqObj.params)
           ? {
-              result: await methods[rpcReqObj.method](req, ...rpcReqObj.params),
-              id: rpcReqObj.id,
-            }
+            result: await methods[rpcReqObj.method](req, ...rpcReqObj.params),
+            id: rpcReqObj.id,
+          }
           : {
-              result: await methods[rpcReqObj.method]({
-                ...rpcReqObj.params,
-                req,
-              }),
-              id: rpcReqObj.id,
-            };
-      else {
+            result: await methods[rpcReqObj.method]({
+              ...rpcReqObj.params,
+              req,
+            }),
+            id: rpcReqObj.id,
+          };
+      } else {
         return Array.isArray(rpcReqObj.params)
           ? {
-              result: await methods[rpcReqObj.method](...rpcReqObj.params),
-              id: rpcReqObj.id,
-            }
+            result: await methods[rpcReqObj.method](...rpcReqObj.params),
+            id: rpcReqObj.id,
+          }
           : {
-              result: await methods[rpcReqObj.method](rpcReqObj.params),
-              id: rpcReqObj.id,
-            };
+            result: await methods[rpcReqObj.method](rpcReqObj.params),
+            id: rpcReqObj.id,
+          };
       }
     }
   } catch (err) {
@@ -151,10 +149,8 @@ async function executeMethods(
       -32000,
       "Server error",
       "id" in rpcReqObj
-        ? isJsonRpcId(rpcReqObj.id)
-          ? rpcReqObj.id
-          : null
-        : undefined
+        ? isJsonRpcId(rpcReqObj.id) ? rpcReqObj.id : null
+        : undefined,
     );
   }
 }
@@ -162,7 +158,7 @@ async function executeMethods(
 async function respondRpc(
   req: ServerRequest,
   methods: Methods,
-  { includeServerErrorStack = false, callMethodsWithRequestObj = false } = {}
+  { includeServerErrorStack = false, callMethodsWithRequestObj = false } = {},
 ) {
   const decodedBody = new TextDecoder().decode(await Deno.readAll(req.body));
   const resObject = callMethodsWithRequestObj
@@ -173,11 +169,11 @@ async function respondRpc(
   req.respond(
     resObject
       ? {
-          body: new TextEncoder().encode(JSON.stringify(resObject)),
-          headers,
-          status: 200,
-        }
-      : { status: 204 }
+        body: new TextEncoder().encode(JSON.stringify(resObject)),
+        headers,
+        status: 200,
+      }
+      : { status: 204 },
   );
   return resObject;
 }
@@ -194,20 +190,20 @@ async function handleData(
   decodedBody: string,
   methods: Methods,
   includeServerErrorStack = false,
-  req?: ServerRequest
+  req?: ServerRequest,
 ): Promise<ResponseTypes | ResponseTypes[] | null> {
   const data = parseJson(decodedBody);
   const result: ResultOrError | ResultOrError[] =
     Array.isArray(data) && data.length > 0
       ? await Promise.all(
-          data
-            .map((body: JsonValue) => validateRpcObj(body, methods))
-            .map(validatedRpcReq =>
-              req
-                ? executeMethods(validatedRpcReq, methods, req)
-                : executeMethods(validatedRpcReq, methods)
-            )
-        )
+        data
+          .map((body: JsonValue) => validateRpcObj(body, methods))
+          .map((validatedRpcReq) =>
+            req
+              ? executeMethods(validatedRpcReq, methods, req)
+              : executeMethods(validatedRpcReq, methods)
+          ),
+      )
       : req
       ? await executeMethods(validateRpcObj(data, methods), methods, req)
       : await executeMethods(validateRpcObj(data, methods), methods);
@@ -216,14 +212,14 @@ async function handleData(
 
 function createRPCResponseObject(
   result: ResultOrError | ResultOrError[],
-  includeServerErrorStack: boolean
+  includeServerErrorStack: boolean,
 ): ResponseTypes | ResponseTypes[] | null {
   if (Array.isArray(result)) {
     const responseBatchObj = result
-      .map(result => createObject(result, includeServerErrorStack))
+      .map((result) => createObject(result, includeServerErrorStack))
       .filter(
         (result: ResponseTypes | null): result is ResponseTypes =>
-          result != null
+          result != null,
       );
     return responseBatchObj.length > 0 ? responseBatchObj : null;
   } else {
@@ -233,7 +229,7 @@ function createRPCResponseObject(
 
 function createObject(
   data: ResultOrError,
-  includeServerErrorStack: boolean
+  includeServerErrorStack: boolean,
 ): ResponseTypes | null {
   function isNotNotification(result: ResultOrError): result is NotNotification {
     return (
@@ -256,8 +252,9 @@ function createObject(
       },
       id: data.rpcRequestID,
     };
-    if (data.stack && includeServerErrorStack)
+    if (data.stack && includeServerErrorStack) {
       rpcResObj.error.data = { stack: data.stack };
+    }
     return rpcResObj;
   } else {
     return null;

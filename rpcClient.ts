@@ -40,28 +40,30 @@ class BadServerDataError extends Error {
 function send(
   resource: Resource,
   fetchInit: RequestInit,
-  handleUnsuccessfulResponse?: (res: Response) => unknown
+  handleUnsuccessfulResponse?: (res: Response) => unknown,
 ) {
   return fetch(resource, fetchInit)
     .then((res: Response) => {
       if (res.ok) {
         // check if rpc was a notification
-        return res.text().then(text => (text ? JSON.parse(text) : undefined));
+        return res.text().then((text) => (text ? JSON.parse(text) : undefined));
       } else if (handleUnsuccessfulResponse) {
         return handleUnsuccessfulResponse(res);
       } else {
         return Promise.reject(
-          new BadServerDataError(`${res.status} ${res.statusText}`, -32001)
+          new BadServerDataError(`${res.status} ${res.statusText}`, -32001),
         );
       }
     })
-    .catch(err => Promise.reject(new BadServerDataError(err.message, -32002)));
+    .catch((err) =>
+      Promise.reject(new BadServerDataError(err.message, -32002))
+    );
 }
 
 function createRpcRequestObj(
   methodName: string,
   params?: JsonRpcParams,
-  id?: JsonRpcId
+  id?: JsonRpcId,
 ): JsonRpcRequest {
   const rpcRequestObj: JsonRpcRequest = {
     jsonrpc: "2.0",
@@ -75,25 +77,26 @@ function createRpcRequestObj(
 
 function createRpcBatchObj(
   batchObj: BatchInput,
-  isNotification = false
+  isNotification = false,
 ): JsonRpcBatchRequest {
   return Array.isArray(batchObj)
-    ? batchObj.map(el =>
-        createRpcRequestObj(
-          el[0],
-          el[1],
-          isNotification ? undefined : generateID()
-        )
+    ? batchObj.map((el) =>
+      createRpcRequestObj(
+        el[0],
+        el[1],
+        isNotification ? undefined : generateID(),
       )
+    )
     : Object.entries(batchObj).map(([key, value]) =>
-        createRpcRequestObj(value[0], value[1], key)
-      );
+      createRpcRequestObj(value[0], value[1], key)
+    );
 }
 
 function generateID(size = 7): string {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
-  for (var str = "", i = 0; i < size; i += 1)
+  for (var str = "", i = 0; i < size; i += 1) {
     str += chars[Math.floor(Math.random() * chars.length)];
+  }
   return str;
 }
 
@@ -109,9 +112,9 @@ function createRemote(resource: Resource, options: Options = {}) {
               createRpcRequestObj(
                 name,
                 args,
-                options.isNotification ? undefined : options.id || generateID()
-              )
-            )
+                options.isNotification ? undefined : options.id || generateID(),
+              ),
+            ),
           );
       }
     },
@@ -119,7 +122,7 @@ function createRemote(resource: Resource, options: Options = {}) {
   const client = new Client(
     resource,
     options,
-    options.handleUnsuccessfulResponse
+    options.handleUnsuccessfulResponse,
   );
   return new Proxy(client, handler);
 }
@@ -129,11 +132,11 @@ class Client {
   private fetchInit: RequestInit;
   private isNotification = false;
   private handleUnsuccessfulResponse?: (res: Response) => unknown;
-  [key: string]: any; // necessary for es6 proxy
+  [key: string]: any // necessary for es6 proxy
   constructor(
     url: Resource,
     options: Options = {},
-    handleUnsuccessfulResponse?: (res: Response) => unknown
+    handleUnsuccessfulResponse?: (res: Response) => unknown,
   ) {
     this.url = url;
     this.isNotification = options.isNotification || false;
@@ -151,44 +154,44 @@ class Client {
     if (Array.isArray(batchObj)) {
       const result = (await this.makeRpcCall(
         JSON.stringify(createRpcBatchObj(batchObj, this.isNotification)),
-        Array.isArray(batchObj)
+        Array.isArray(batchObj),
       )) as BatchArrayOutput | undefined;
       if (result instanceof BadServerDataError) return Promise.reject(result);
-      else if (result === undefined || batchObj.length !== result.length)
+      else if (result === undefined || batchObj.length !== result.length) {
         return Promise.reject(
-          new BadServerDataError("Something went wrong", -32004, result)
+          new BadServerDataError("Something went wrong", -32004, result),
         );
-      else if (result.find(el => el instanceof BadServerDataError))
+      } else if (result.find((el) => el instanceof BadServerDataError)) {
         return Promise.reject(
-          result.find(el => el instanceof BadServerDataError)
+          result.find((el) => el instanceof BadServerDataError),
         );
-      else return result;
+      } else return result;
     } else {
       const result = (await this.makeRpcCall(
         JSON.stringify(createRpcBatchObj(batchObj, this.isNotification)),
-        Array.isArray(batchObj)
+        Array.isArray(batchObj),
       )) as BatchObjectOutput | undefined;
       if (result instanceof BadServerDataError) return Promise.reject(result);
       else if (
         result === undefined ||
         Object.keys(batchObj).length !== Object.keys(result).length
-      )
+      ) {
         return Promise.reject(
-          new BadServerDataError("Something went wrong", -32004, result)
+          new BadServerDataError("Something went wrong", -32004, result),
         );
-      else if (
-        Object.values(result).find(el => el instanceof BadServerDataError)
-      )
+      } else if (
+        Object.values(result).find((el) => el instanceof BadServerDataError)
+      ) {
         return Promise.reject(
-          Object.values(result).find(el => el instanceof BadServerDataError)
+          Object.values(result).find((el) => el instanceof BadServerDataError),
         );
-      else return result;
+      } else return result;
     }
   }
 
   async makeRpcCall(
     stringifiedRpcRequestObj: string,
-    shouldReturnBatchResultsAsArray = true
+    shouldReturnBatchResultsAsArray = true,
   ): Promise<JsonValue | BadServerDataError | BatchOutput | undefined> {
     const rpcResponse = (await send(
       this.url,
@@ -196,12 +199,11 @@ class Client {
         ...this.fetchInit,
         body: stringifiedRpcRequestObj,
       },
-      this.handleUnsuccessfulResponse
+      this.handleUnsuccessfulResponse,
     )) as JsonValue | undefined;
-    const result =
-      rpcResponse === undefined
-        ? undefined
-        : this.handleResponseData(rpcResponse, shouldReturnBatchResultsAsArray);
+    const result = rpcResponse === undefined
+      ? undefined
+      : this.handleResponseData(rpcResponse, shouldReturnBatchResultsAsArray);
     return result instanceof BadServerDataError
       ? Promise.reject(result)
       : result;
@@ -210,7 +212,7 @@ class Client {
   // public for tests
   handleResponseData(
     rpcResponseObjOrBatch: JsonValue,
-    shouldReturnBatchResultsAsArray = true
+    shouldReturnBatchResultsAsArray = true,
   ): JsonValue | BadServerDataError | BatchOutput {
     if (Array.isArray(rpcResponseObjOrBatch)) {
       return shouldReturnBatchResultsAsArray
@@ -227,12 +229,12 @@ class Client {
         acc.push(this.validateRpcResponseObj(rpcResponseObj));
         return acc;
       },
-      []
+      [],
     );
   }
 
   private returnBatchAsObject(
-    rpcResponseBatch: JsonValue[]
+    rpcResponseBatch: JsonValue[],
   ): BatchObjectOutput {
     return rpcResponseBatch.reduce<BatchObjectOutput>((acc, rpcResponseObj) => {
       if (
@@ -256,7 +258,7 @@ class Client {
 
   private hasProperty<K extends string>(
     key: K,
-    x: object
+    x: object,
   ): x is { [key in K]: unknown } {
     return key in x;
   }
@@ -272,12 +274,12 @@ class Client {
     );
   }
   private validateJsonRpcSuccess(
-    data: JsonRpcResponseBasis
+    data: JsonRpcResponseBasis,
   ): data is JsonRpcSuccess {
     return this.hasProperty("result", data);
   }
   private validateJsonRpcFailure(
-    data: JsonRpcResponseBasis
+    data: JsonRpcResponseBasis,
   ): data is JsonRpcFailure {
     return (
       this.hasProperty("error", data) &&
@@ -290,20 +292,21 @@ class Client {
   }
 
   private validateRpcResponseObj(
-    data: JsonValue
+    data: JsonValue,
   ): JsonValue | BadServerDataError {
     if (this.validateJsonRpcBasis(data)) {
       if (this.validateJsonRpcSuccess(data)) return data.result;
-      else if (this.validateJsonRpcFailure(data))
+      else if (this.validateJsonRpcFailure(data)) {
         return new BadServerDataError(
           data.error.message,
           data.error.code,
-          data.error.data
+          data.error.data,
         );
+      }
     }
     return new BadServerDataError(
       "Received data is no RPC response object.",
-      -32003
+      -32003,
     );
   }
 }

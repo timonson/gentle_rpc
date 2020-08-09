@@ -23,7 +23,7 @@ const sentence = await remote.weCallThisMethod(
   "lot",
   "of",
   "cool",
-  "words"
+  "words",
 );
 
 let noise3 = await remote.batch([

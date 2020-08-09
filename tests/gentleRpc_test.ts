@@ -32,11 +32,11 @@ Deno.test("makeRpcCallWithPositionalParameters", async function (): Promise<
   const objSentToClient = '{"jsonrpc": "2.0", "result": 19, "id": 1}';
   assertEquals(
     createRpcRequestObj("subtract", [42, 23], 1),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -46,11 +46,11 @@ Deno.test("makeRpcCallWithNamedParameters", async function (): Promise<void> {
   const objSentToClient = '{"jsonrpc": "2.0", "result": 65, "id": "4"}';
   assertEquals(
     createRpcRequestObj("sum", { summand1: 23, summand2: 42 }, "4"),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     await handleData(objSentToServer, { sum }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -71,11 +71,11 @@ Deno.test("makeRpcCallWithNoArguments", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "result": ["Hello World"], "id": "abc01"}';
   assertEquals(
     createRpcRequestObj("sayHello", undefined, "abc01"),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     await handleData(objSentToServer, { sayHello }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -84,7 +84,7 @@ Deno.test("makeRpcCallAsNotification", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23]}';
   const objSentToClient = assertEquals(
     createRpcRequestObj("subtract", [42, 23]),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(await handleData(objSentToServer, { subtract }), null);
 });
@@ -96,12 +96,12 @@ Deno.test("makeRpcCallOfNonExistentMethod", async function (): Promise<void> {
   const foobar = null;
   assertEquals(
     createRpcRequestObj("foobar", undefined, "1"),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     // @ts-ignore
     await handleData(objSentToServer, { foobar }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -112,7 +112,7 @@ Deno.test("makeRpcCallWithInvalidJson", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -127,7 +127,7 @@ Deno.test("makeRpcResponseIncludingErrorStack", async function (): Promise<
     ((await handleData(objSentToServer, { subtract }, true)) as {
       [key: string]: any;
     }).error.data.stack.slice(0, 10),
-    JSON.parse(objSentToClient).error.data.stack.slice(0, 10)
+    JSON.parse(objSentToClient).error.data.stack.slice(0, 10),
   );
 });
 
@@ -139,7 +139,7 @@ Deno.test("makeRpcCallWithInvalidRequestObject", async function (): Promise<
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -150,7 +150,7 @@ Deno.test("makeRpcBatchCallWithInvalidJson", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -160,7 +160,7 @@ Deno.test("makeRpcCallWithEmptyArray", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -170,14 +170,14 @@ Deno.test("makeRpcBatchCallWithInvalidBatch", async function (): Promise<void> {
     ' [ {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ]';
   assertEquals(
     await handleData(objSentToServer, { subtract }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
   const objSentToServer2 = "[1,2,3]";
   const objSentToClient2 =
     '[ {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ]';
   assertEquals(
     await handleData(objSentToServer2, { subtract }),
-    JSON.parse(objSentToClient2)
+    JSON.parse(objSentToClient2),
   );
 });
 
@@ -197,13 +197,13 @@ Deno.test("makeRpcBatchCallsAsNotifications", async function (): Promise<void> {
         ["subtract", [42, 23]],
         ["sayHello"],
       ],
-      true
+      true,
     ),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     await handleData(objSentToServer, { subtract, sum, sayHello }),
-    objSentToClient
+    objSentToClient,
   );
 });
 
@@ -223,11 +223,11 @@ Deno.test("makeRpcBatchCallWithIds", async function (): Promise<void> {
       a2: ["subtract", [42, 23]],
       a3: ["sayHello"],
     }),
-    JSON.parse(objSentToServer)
+    JSON.parse(objSentToServer),
   );
   assertEquals(
     await handleData(objSentToServer, { subtract, sum, sayHello }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -238,7 +238,7 @@ Deno.test("makeRpcBatchCall", async function (): Promise<void> {
     ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "5"}, {"jsonrpc": "2.0", "result": ["Hello World"], "id": "9"} ] ';
   assertEquals(
     await handleData(objSentToServer, { subtract, sum, sayHello }),
-    JSON.parse(objSentToClient)
+    JSON.parse(objSentToClient),
   );
 });
 
@@ -249,21 +249,22 @@ Deno.test(
       '{"jsonrpc": "2.0", "method": "sayHello", "params": [],"id": 1}';
     const objSentToClient =
       '{"jsonrpc": "2.0", "result": ["Hello this is the response object duuh"], "id": 1}';
-    const responseObjectMock = ("this is the response object duuh" as unknown) as ServerRequest;
+    const responseObjectMock =
+      ("this is the response object duuh" as unknown) as ServerRequest;
     assertEquals(
       createRpcRequestObj("sayHello", [], 1),
-      JSON.parse(objSentToServer)
+      JSON.parse(objSentToServer),
     );
     assertEquals(
       await handleData(
         objSentToServer,
         { sayHello },
         false,
-        responseObjectMock
+        responseObjectMock,
       ),
-      JSON.parse(objSentToClient)
+      JSON.parse(objSentToClient),
     );
-  }
+  },
 );
 
 Deno.test("handleResponseObjOnClientSide", async function (): Promise<void> {
@@ -274,7 +275,7 @@ Deno.test("handleResponseObjOnClientSide", async function (): Promise<void> {
     client.handleResponseData(JSON.parse(objSentToClient)) as
       | JsonValue
       | BadServerDataError[],
-    [30, 19]
+    [30, 19],
   );
 });
 
@@ -286,7 +287,7 @@ Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
     ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ] ';
   try {
     var handledResponse = client.handleResponseData(
-      JSON.parse(objSentToClient)
+      JSON.parse(objSentToClient),
     ) as JsonValue | BadServerDataError[];
   } catch (err) {
     handledResponse = err;

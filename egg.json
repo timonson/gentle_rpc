@@ -1,10 +1,10 @@
 {
-  "name": "gentleRpc",
+  "name": "gentle_rpc",
   "description": "JSON-RPC 2.0 TypeScript library for deno and the browser",
   "bump": "patch",
-  "entry": "/mod.ts",
+  "entry": "./mod.ts",
   "stable": true,
-  "repository": "https://github.com/timonson/gentleRpc",
+  "repository": "https://github.com/timonson/gentle_rpc",
   "files": [
     "tests/*",
     "examples/*",
@@ -12,9 +12,6 @@
     "rpcClient.ts",
     "rpcServer.ts",
     "jsonRpc2Types.ts",
-    "./mod.ts",
-    "./mod.ts",
-    "./mod.ts"
   ],
   "ignore": [
     ".git"
@@ -22,5 +19,5 @@
   "checkFormat": "deno fmt",
   "checkAll": true,
   "unlisted": false,
-  "version": "0.0.2"
+  "version": "0.0.1"
 }

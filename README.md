@@ -1,10 +1,10 @@
-# gentleRpc
+# gentle_rpc
 
 JSON-RPC 2.0 TypeScript library for [deno](https://github.com/denoland/deno) and
 the browser.
 
 This library is accessible through the https://deno.land/x/ service or through
-https://nest.land/package/gentleRpc.
+https://nest.land/package/gentle_rpc.
 
 ## Features
 
@@ -19,7 +19,7 @@ https://nest.land/package/gentleRpc.
 ## Example
 
 Always use versioned imports for your dependencies. For example
-`https://deno.land/x/gentleRpc@v1.2/rpcServer.ts`.
+`https://deno.land/x/gentle_rpc@v1.2/rpcServer.ts`.
 
 #### Server/deno side
 
@@ -28,7 +28,7 @@ import {
   serve,
   ServerRequest,
 } from "https://deno.land/std@0.71.0/http/server.ts";
-import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts";
+import { respondRpc } from "https://deno.land/x/gentle_rpc/rpcServer.ts";
 
 console.log("listening on 0.0.0.0:8000");
 const s = serve("0.0.0.0:8000");
@@ -45,7 +45,7 @@ for await (const req of s) {
 #### Client/remote side
 
 ```typescript
-import { createRemote } from "https://deno.land/x/gentleRpc/rpcClient.ts";
+import { createRemote } from "https://deno.land/x/gentle_rpc/rpcClient.ts";
 
 const remote = createRemote("http://0.0.0.0:8000");
 const greeting = await remote.sayHello("World");
@@ -135,8 +135,8 @@ const noise2 = await remote.batch({
 ## Examples and Tests
 
 Checkout the
-[examples](https://github.com/timonson/gentleRpc/tree/master/examples) and
-[tests](https://github.com/timonson/gentleRpc/tree/master/tests) folders for
+[examples](https://github.com/timonson/gentle_rpc/tree/master/examples) and
+[tests](https://github.com/timonson/gentle_rpc/tree/master/tests) folders for
 more detailed examples.
 
 ## Contribution

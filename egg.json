@@ -19,5 +19,5 @@
   "checkFormat": "deno fmt",
   "checkAll": true,
   "unlisted": false,
-  "version": "0.0.1"
+  "version": "0.0.2"
 }

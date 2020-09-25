@@ -132,7 +132,7 @@ class Client {
   private fetchInit: RequestInit;
   private isNotification = false;
   private handleUnsuccessfulResponse?: (res: Response) => unknown;
-  [key: string]: unknown // necessary for es6 proxy
+  [key: string]: any // necessary for es6 proxy
   constructor(
     url: Resource,
     options: Options = {},

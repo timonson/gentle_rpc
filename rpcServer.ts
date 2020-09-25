@@ -54,13 +54,8 @@ function isJsonRpcId(input: unknown): input is JsonRpcId {
     case "number":
       return input % 1 === 0;
     case "object":
-      let isNull = input === null;
-      if (isNull) {
-        console.warn("Use of null ID in JSONRPC 2.0 is discouraged.");
-        return true;
-      } else {
-        return false;
-      }
+      // Use of null ID in JSONRPC 2.0 is discouraged
+      return input === null;
     default:
       return false;
   }

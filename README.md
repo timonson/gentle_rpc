@@ -3,7 +3,8 @@
 JSON-RPC 2.0 TypeScript library for [deno](https://github.com/denoland/deno) and
 the browser.
 
-This library is accessible through the https://deno.land/x/ service.
+This library is accessible through the https://deno.land/x/ service or through
+https://nest.land/package/gentleRpc.
 
 ## Features
 
@@ -23,7 +24,10 @@ Always use versioned imports for your dependencies. For example
 #### Server/deno side
 
 ```typescript
-import { serve, ServerRequest } from "https://deno.land/std@0.62.0/http/server.ts";
+import {
+  serve,
+  ServerRequest,
+} from "https://deno.land/std@0.71.0/http/server.ts";
 import { respondRpc } from "https://deno.land/x/gentleRpc/rpcServer.ts";
 
 console.log("listening on 0.0.0.0:8000");

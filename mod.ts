@@ -1,10 +1,5 @@
-export {
-  createRemote,
-  send,
-  createRpcRequestObj,
-  createRpcBatchObj,
-  Client,
-  BadServerDataError,
-} from "./rpcClient.ts";
+export { createRemote, createRpcRequestObj } from "./rpcClient.ts";
 
-export { respondRpc, handleData, validateRpcObj } from "./rpcServer.ts";
+export { handleData, respondRpc } from "./rpcServer.ts";
+
+import { createRpcBatchObj } from "./batchRequest.ts";

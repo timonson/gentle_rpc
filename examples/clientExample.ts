@@ -11,7 +11,7 @@ const noise1 = await remote.batch([
   ["animalsMakeNoise", ["fiiiiire"]],
 ]);
 
-const noise2 = await remote.batch({
+let noise2 = await remote.batch({
   cat: ["animalsMakeNoise", ["miaaow"]],
   dog: ["animalsMakeNoise", ["wuuuufu"]],
   donkey: ["animalsMakeNoise", ["iaaaiaia"]],
@@ -33,7 +33,8 @@ let noise3 = await remote.batch([
   ["animalsMakeNoise", ["fiiiiire"]],
 ]);
 
-// noise3 = { a: 3 };
+// noise3 = 8;
+// noise2 = 444;
 
 console.log(greeting);
 console.log(noise1);

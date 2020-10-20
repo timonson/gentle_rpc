@@ -12,10 +12,12 @@ export interface JsonRpcRequest {
   params?: JsonArray | JsonObject;
 }
 
+export type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure;
+
 export type JsonRpcBatchRequest = JsonRpcRequest[];
 export type JsonRpcBatchResponse = JsonRpcResponse[];
 
-export type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure;
+export type JsonRpcResponseOrBatch = JsonRpcResponse | JsonRpcBatchResponse;
 
 export interface JsonRpcResponseBasis {
   jsonrpc: JsonRpcVersion;

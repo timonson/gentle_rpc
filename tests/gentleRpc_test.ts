@@ -2,17 +2,12 @@ import {
   assertEquals,
   assertThrowsAsync,
 } from "https://deno.land/std@0.71.0/testing/asserts.ts";
-import { ServerRequest } from "https://deno.land/std@0.71.0/http/server.ts";
 import { handleData } from "../rpcServer.ts";
-import {
-  createRemote,
-  send,
-  createRpcRequestObj,
-  createRpcBatchObj,
-  Client,
-  BadServerDataError,
-} from "../rpcClient.ts";
-import { JsonValue } from "../jsonRpc2Types.ts";
+import { createRemote, createRpcRequestObj } from "../rpcClient.ts";
+import { createRpcBatchObj, processBatch } from "../batchRequest.ts";
+
+import type { JsonValue } from "../jsonRpc2Types.ts";
+import type { ServerRequest } from "https://deno.land/std@0.71.0/http/server.ts";
 
 function subtract(minuend: number, subtrahend: number) {
   return minuend - subtrahend;
@@ -116,21 +111,6 @@ Deno.test("makeRpcCallWithInvalidJson", async function (): Promise<void> {
   );
 });
 
-Deno.test("makeRpcResponseIncludingErrorStack", async function (): Promise<
-  void
-> {
-  const objSentToServer =
-    '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]';
-  const objSentToClient =
-    '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error", "data": {"stack": "Error: Parse error at parseJson"}}, "id": null}';
-  assertEquals(
-    ((await handleData(objSentToServer, { subtract }, true)) as {
-      [key: string]: any;
-    }).error.data.stack.slice(0, 10),
-    JSON.parse(objSentToClient).error.data.stack.slice(0, 10),
-  );
-});
-
 Deno.test("makeRpcCallWithInvalidRequestObject", async function (): Promise<
   void
 > {
@@ -191,14 +171,11 @@ Deno.test("makeRpcBatchCallsAsNotifications", async function (): Promise<void> {
 `;
   const objSentToClient = null;
   assertEquals(
-    createRpcBatchObj(
-      [
-        ["sum", { summand1: 10, summand2: 20 }],
-        ["subtract", [42, 23]],
-        ["sayHello"],
-      ],
-      true,
-    ),
+    createRpcBatchObj([
+      ["sum", { summand1: 10, summand2: 20 }],
+      ["subtract", [42, 23]],
+      ["sayHello"],
+    ]),
     JSON.parse(objSentToServer),
   );
   assertEquals(
@@ -232,69 +209,53 @@ Deno.test("makeRpcBatchCallWithIds", async function (): Promise<void> {
 });
 
 Deno.test("makeRpcBatchCall", async function (): Promise<void> {
-  const objSentToServer =
+  const objSentToServer1 =
+    '[ {"jsonrpc": "2.0", "method": "sum", "params": {"summand1":10,"summand2":20}, "id": "1"}, {"jsonrpc": "2.0", "method": "subtract", "params": [42,23], "id": "2"}, {"jsonrpc": "2.0", "method": "foo.get", "params": {"name": "myself"}, "id": "5"}]';
+  assertEquals(
+    createRpcBatchObj({
+      "1": ["sum", { summand1: 10, summand2: 20 }],
+      "2": ["subtract", [42, 23]],
+      "5": ["foo.get", { name: "myself" }],
+    }),
+    JSON.parse(objSentToServer1),
+  );
+  const objSentToServer2 =
     '[ {"jsonrpc": "2.0", "method": "sum", "params": {"summand1":10,"summand2":20}, "id": "1"}, {"jsonrpc": "2.0", "method": "sayHello", "params": ["World"]}, {"jsonrpc": "2.0", "method": "subtract", "params": [42,23], "id": "2"}, {"foo": "boo"}, {"jsonrpc": "2.0", "method": "foo.get", "params": {"name": "myself"}, "id": "5"}, {"jsonrpc": "2.0", "method": "sayHello", "id": "9"} ]';
-  const objSentToClient =
-    ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "5"}, {"jsonrpc": "2.0", "result": ["Hello World"], "id": "9"} ] ';
+  const objSentToClient2 =
+    '[ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "5"}, {"jsonrpc": "2.0", "result": ["Hello World"], "id": "9"} ]';
   assertEquals(
-    await handleData(objSentToServer, { subtract, sum, sayHello }),
-    JSON.parse(objSentToClient),
+    await handleData(objSentToServer2, { subtract, sum, sayHello }),
+    JSON.parse(objSentToClient2),
   );
 });
 
-Deno.test(
-  "makeRpcCallWithRequestObjectMockAsArgument",
-  async function (): Promise<void> {
-    const objSentToServer =
-      '{"jsonrpc": "2.0", "method": "sayHello", "params": [],"id": 1}';
-    const objSentToClient =
-      '{"jsonrpc": "2.0", "result": ["Hello this is the response object duuh"], "id": 1}';
-    const responseObjectMock =
-      ("this is the response object duuh" as unknown) as ServerRequest;
-    assertEquals(
-      createRpcRequestObj("sayHello", [], 1),
-      JSON.parse(objSentToServer),
-    );
-    assertEquals(
-      await handleData(
-        objSentToServer,
-        { sayHello },
-        false,
-        responseObjectMock,
-      ),
-      JSON.parse(objSentToClient),
-    );
-  },
-);
-
-Deno.test("handleResponseObjOnClientSide", async function (): Promise<void> {
-  const client = new Client("testUrl");
+Deno.test("processAndValidateBatchObjects", async function (): Promise<void> {
   const objSentToClient =
-    ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"} ] ';
+    '[ {"jsonrpc": "2.0", "result": 30, "id": "100"}, {"jsonrpc": "2.0", "result": 19, "id": "200"} ] ';
+  const objClient = '{"100":["sum",[10,20]], "200":["subtract",[20,1]]}';
   assertEquals(
-    client.handleResponseData(JSON.parse(objSentToClient)) as
-      | JsonValue
-      | BadServerDataError[],
-    [30, 19],
+    await processBatch(JSON.parse(objClient), JSON.parse(objSentToClient)),
+    JSON.parse('{"100":30,"200":19}'),
   );
 });
 
-Deno.test("handleResponseObjOnClientSideWithError", async function (): Promise<
-  void
-> {
-  const client = new Client("testUrl");
+Deno.test("processAndValidateBatchArrays", async function (): Promise<void> {
   const objSentToClient =
-    ' [ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ] ';
-  try {
-    var handledResponse = client.handleResponseData(
-      JSON.parse(objSentToClient),
-    ) as JsonValue | BadServerDataError[];
-  } catch (err) {
-    handledResponse = err;
-  }
-  assertEquals(handledResponse, [
-    30,
-    19,
-    new BadServerDataError("Invalid Request", -32600),
-  ]);
+    '[ {"jsonrpc": "2.0", "result": 30, "id": "100"}, {"jsonrpc": "2.0", "result": 19, "id": "200"}, {"jsonrpc": "2.0", "result": "Hello World", "id":"d"} ] ';
+  const objClient = '[["sum",[10,20]], ["subtract",[20,1]], ["sayHello"]]';
+  assertEquals(
+    await processBatch(JSON.parse(objClient), JSON.parse(objSentToClient)),
+    JSON.parse('[30,19,"Hello World"]'),
+  );
+  const objSentToClient2 =
+    '[ {"jsonrpc": "2.0", "result": 30, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "5"}, {"jsonrpc": "2.0", "result": ["Hello World"], "id": "9"} ]';
+  const objClient2 =
+    '[["sum",[10,20]],["sum",[10,20]],["sum",[10,20]],["sum",[10,20]],["sum",[10,20]]]';
+  assertEquals(
+    await processBatch(
+      JSON.parse(objClient2),
+      JSON.parse(objSentToClient2),
+    ).catch((err: any) => err.message),
+    "Invalid Request",
+  );
 });

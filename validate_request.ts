@@ -1,83 +1,73 @@
-import { Methods } from "./rpcServer.ts";
+import { ServerMethods } from "./respond.ts";
 import type {
   JsonArray,
   JsonObject,
-  JsonRpcId,
-  JsonRpcMethod,
-  JsonRpcRequest,
   JsonValue,
-} from "./jsonRpc2Types.ts";
+  RpcId,
+  RpcMethod,
+  RpcRequest,
+} from "./json_rpc_types.ts";
 
 export type ValidationSuccess = {
-  id: JsonRpcId;
-  method: JsonRpcMethod;
+  id: RpcId;
+  method: RpcMethod;
   params: JsonArray | JsonObject | undefined;
   result?: JsonValue;
-  isError: undefined;
+  isError: false;
 };
 export type ValidationFailure = {
-  id: JsonRpcId;
+  id: RpcId;
   message: string;
   code: number;
   isError: true;
 };
 export type ValidationObject = ValidationSuccess | ValidationFailure;
 
-function isJsonRpcVersion(input: unknown): input is "2.0" {
+function isRpcVersion(input: unknown): input is "2.0" {
   return input === "2.0";
 }
 
-function isJsonRpcMethod(input: unknown): input is string {
+function isRpcMethod(input: unknown): input is string {
   return typeof input === "string" && !input.startsWith("rpc.");
 }
 
-function isJsonRpcParams(input: unknown): input is JsonArray | JsonObject {
+function isRpcParams(input: unknown): input is JsonArray | JsonObject {
   return typeof input === "object" && input !== null;
 }
 
-function isJsonRpcId(input: unknown): input is JsonRpcId {
+function isRpcId(input: unknown): input is RpcId {
   switch (typeof input) {
     case "string":
       return true;
     case "number":
       return input % 1 === 0;
     case "object":
-      // Use of null ID in JSONRPC 2.0 is discouraged
       return input === null;
     default:
       return false;
   }
 }
 
-export function isObject(obj: unknown): obj is Record<string, any> {
+function isObject(obj: unknown): obj is Record<string, any> {
   return (
     obj !== null && typeof obj === "object" && Array.isArray(obj) === false
   );
 }
 
-export function validateRpcRequestObject(
+export function validateRequest(
   decodedBody: any,
-  methods: Methods,
+  methods: ServerMethods,
 ): ValidationObject {
-  if (decodedBody instanceof SyntaxError) {
-    return {
-      code: -32700,
-      message: "Parse error",
-      id: null,
-      isError: true,
-    };
-  }
-
   if (isObject(decodedBody)) {
     if (
-      !isJsonRpcVersion(decodedBody.jsonrpc) ||
-      !isJsonRpcMethod(decodedBody.method) ||
-      ("id" in decodedBody && !isJsonRpcId(decodedBody.id))
+      !isRpcVersion(decodedBody.jsonrpc) ||
+      !isRpcMethod(decodedBody.method) ||
+      ("id" in decodedBody && !isRpcId(decodedBody.id))
     ) {
       return {
         code: -32600,
         message: "Invalid Request",
-        id: isJsonRpcId(decodedBody.id) ? decodedBody.id : null,
+        id: isRpcId(decodedBody.id) ? decodedBody.id : null,
         isError: true,
       };
     } else if (typeof methods[decodedBody.method] !== "function") {
@@ -87,10 +77,7 @@ export function validateRpcRequestObject(
         id: decodedBody.id,
         isError: true,
       };
-    } else if (
-      "params" in decodedBody &&
-      !isJsonRpcParams(decodedBody.params)
-    ) {
+    } else if ("params" in decodedBody && !isRpcParams(decodedBody.params)) {
       return {
         code: -32602,
         message: "Invalid parameters",
@@ -98,7 +85,12 @@ export function validateRpcRequestObject(
         isError: true,
       };
     } else {
-      return decodedBody as ValidationSuccess;
+      return {
+        id: decodedBody.id,
+        method: decodedBody.method,
+        params: decodedBody.params,
+        isError: false,
+      };
     }
   } else {
     return {

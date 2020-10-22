@@ -1,9 +1,9 @@
 import type {
-  JsonRpcFailure,
-  JsonRpcResponseBasis,
-  JsonRpcSuccess,
   JsonValue,
-} from "./jsonRpc2Types.ts";
+  RpcFailure,
+  RpcResponseBasis,
+  RpcSuccess,
+} from "./json_rpc_types.ts";
 
 export class BadServerDataError extends Error {
   name: string;
@@ -17,7 +17,7 @@ export class BadServerDataError extends Error {
   }
 }
 
-export function validateJsonRpcBasis(data: any): data is JsonRpcResponseBasis {
+function validateRpcBasis(data: any): data is RpcResponseBasis {
   return (
     data?.jsonrpc === "2.0" &&
     (typeof data?.id === "number" ||
@@ -25,20 +25,20 @@ export function validateJsonRpcBasis(data: any): data is JsonRpcResponseBasis {
       data?.id === null)
   );
 }
-export function validateJsonRpcSuccess(data: any): data is JsonRpcSuccess {
+function validateRpcSuccess(data: any): data is RpcSuccess {
   return "result" in data;
 }
-export function validateJsonRpcFailure(data: any): data is JsonRpcFailure {
+function validateRpcFailure(data: any): data is RpcFailure {
   return (
     typeof data?.error?.code === "number" &&
     typeof data?.error?.message === "string"
   );
 }
 
-export function validateRpcResponseObj(data: JsonValue): JsonValue {
-  if (validateJsonRpcBasis(data)) {
-    if (validateJsonRpcSuccess(data)) return data.result;
-    else if (validateJsonRpcFailure(data)) {
+export function validateResponse(data: JsonValue): JsonValue {
+  if (validateRpcBasis(data)) {
+    if (validateRpcSuccess(data)) return data.result;
+    else if (validateRpcFailure(data)) {
       throw new BadServerDataError(
         data.error.message,
         data.error.code,

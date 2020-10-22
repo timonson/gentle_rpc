@@ -7,11 +7,9 @@
   "repository": "https://github.com/timonson/gentle_rpc",
   "files": [
     "tests/*",
-    "examples/*",
     "README.md",
-    "rpcClient.ts",
-    "rpcServer.ts",
-    "jsonRpc2Types.ts",
+    "LICENSE",
+    "*.ts",
   ],
   "ignore": [
     ".git"

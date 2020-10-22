@@ -1,5 +1,3 @@
-export { createRemote, createRpcRequestObj } from "./rpcClient.ts";
+export { createRemote } from "./request.ts";
 
-export { handleData, respondRpc } from "./rpcServer.ts";
-
-import { createRpcBatchObj } from "./batchRequest.ts";
+export { respond } from "./respond.ts";

@@ -1,4 +1,4 @@
-import { createRemote } from "../request.ts";
+import { createRemote } from "../../request.ts";
 
 // notification:
 // const remote = createRemote("http://0.0.0.0:8000", { isNotification: true });
@@ -13,7 +13,7 @@ const orderedParams = await remote.callOrderedParameters([
   "a",
   "lot",
   "of",
-  "words",
+  "words.",
 ]);
 const namedParams = await remote.callNamedParameters({
   a: 5,
@@ -24,8 +24,8 @@ const namedParams = await remote.callNamedParameters({
 const noise1 = await remote.batch([
   "animalsMakeNoise",
   ["miaaow"],
-  ["wuuuufu"],
-  ["iaaaiaia"],
+  ["wuuuufu", "wuuuufu"],
+  ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
   ["fiiiiire"],
 ]);
 
@@ -33,13 +33,13 @@ const noise2 = await remote.batch({
   cat: ["sayHello", ["miaaow"]],
   dog: ["animalsMakeNoise", ["wuuuufu"]],
   donkey: ["sayHello"],
-  dragon: ["animalsMakeNoise", ["fiiiiire"]],
+  dragon: ["animalsMakeNoise", ["fiiiiire", "fiiiiire"]],
 });
 
 console.log(greeting1); // Hello World
 console.log(greeting2); // Hello
 console.log(subtraction); // -19
-console.log(orderedParams); // Now comes a sentence with a lot of words
+console.log(orderedParams); // Now comes a sentence with a lot of words.
 console.log(namedParams); // result: 50
-console.log(noise1); // [ "MIAAOW", "WUUUUFU", "IAAAIAIA", "FIIIIIRE" ]
-console.log(noise2); // { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE" }
+console.log(noise1); // [ "miaaow", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "fiiiiire" ]
+console.log(noise2); // { cat: "Hello miaaow", dog: "wuuuufu", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }

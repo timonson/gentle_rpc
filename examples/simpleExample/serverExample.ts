@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std/http/server.ts";
-import { respond } from "../respond.ts";
+import { respond } from "../../respond.ts";
 
-console.log("listening on 0.0.0.0:8000");
 const s = serve("0.0.0.0:8000");
+console.log("listening on 0.0.0.0:8000");
 const rpcMethods = {
   sayHello: (w?: [string]) => `Hello ${w ? w[0] : ""}`,
   subtract: (input: number[]) => input[0] - input[1],
@@ -10,7 +10,8 @@ const rpcMethods = {
     `Now comes a sentence with ${words.reduce((acc, s) => (acc += ` ${s}`))}`,
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
     `${c} ${a * b}`,
-  animalsMakeNoise: ([noise]: [string]) => noise.toUpperCase(),
+  animalsMakeNoise: (noise: [string]) =>
+    noise.reduce((acc, el) => (acc + " " + el).toUpperCase()),
   addServerArg: ([name, additionalArg]: [string, { query: string }]) =>
     `${additionalArg.query} ${name}`,
 };

@@ -9,6 +9,12 @@ import type { ServerRequest } from "https://deno.land/std/http/server.ts";
 export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue;
 };
+export type RespondOptions = {
+  argument?: any;
+  methods?: (keyof ServerMethods)[];
+  allMethods?: true;
+  publicErrorStack?: true;
+};
 
 function tryToParse(json: string) {
   try {
@@ -28,7 +34,7 @@ function tryToParse(json: string) {
 export async function respond(
   req: ServerRequest,
   methods: ServerMethods,
-  { additionalArgument }: { additionalArgument?: Record<string, any> } = {},
+  options: RespondOptions = {},
 ) {
   const [parsedBody, parseError] = tryToParse(
     new TextDecoder().decode(await Deno.readAll(req.body)),
@@ -37,8 +43,8 @@ export async function respond(
   const jsonRpcResponseOrBatchOrNull = parseError
     ? parseError
     : Array.isArray(parsedBody) && parsedBody.length > 0
-    ? await createResponseBatch(parsedBody, methods, additionalArgument)
-    : await createRpcResponseObject(parsedBody, methods, additionalArgument);
+    ? await createResponseBatch(parsedBody, methods, options)
+    : await createRpcResponseObject(parsedBody, methods, options);
 
   const headers = new Headers();
   headers.set("content-type", "application/json");

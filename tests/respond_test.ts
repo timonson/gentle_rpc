@@ -3,7 +3,7 @@
 import {
   assertEquals,
   assertNotEquals,
-  assertThrows,
+  assertThrowsAsync,
 } from "https://deno.land/std/testing/asserts.ts";
 
 import { respond } from "../respond.ts";
@@ -16,10 +16,12 @@ const methods = {
       ? input[0] - input[1]
       : input.minuend - input.subtrahend,
   sum: (arr: number[]) => arr.reduce((acc, el) => acc + el),
-  queryDatabase: ([name, additionalArg]: [string, { query: string }]) =>
-    `${additionalArg.query} ${name}`,
+  queryDatabase: ([name, argument]: [string, string]) => `${argument} ${name}`,
   notify_hello: () => "hello",
   get_data: () => ["hello", 5],
+  throwError: () => {
+    throw new Error("my error");
+  },
 };
 
 function createReq(str: string) {
@@ -55,23 +57,6 @@ Deno.test("rpc call with named parameters", async function (): Promise<void> {
     removeWhiteSpace(sentToClient),
   );
 });
-
-Deno.test(
-  "rpc call with additional argument from server",
-  async function (): Promise<void> {
-    const sentToServer =
-      '{"jsonrpc": "2.0", "method": "queryDatabase", "params": ["Joe"], "id": "a"}';
-    const sentToClient =
-      '{"jsonrpc": "2.0", "result": "DB query result: Joe", "id": "a"}';
-
-    assertEquals(
-      await respond(createReq(sentToServer), methods, {
-        additionalArgument: { query: "DB query result:" },
-      }),
-      removeWhiteSpace(sentToClient),
-    );
-  },
-);
 
 Deno.test("rpc call as a notification", async function (): Promise<void> {
   let sentToServer =
@@ -186,4 +171,49 @@ Deno.test("rpc call Batch (all notifications)", async function (): Promise<
     '[ {"jsonrpc": "2.0", "method": "notify_sum", "params": [1,2,4]}, {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]} ]';
 
   assertEquals(await respond(createReq(sentToServer), methods), undefined);
+});
+
+Deno.test(
+  "rpc call with additional argument from server",
+  async function (): Promise<void> {
+    const sentToServer =
+      '{"jsonrpc": "2.0", "method": "queryDatabase", "params": ["Joe"], "id": "a"}';
+    const sentToClient =
+      '{"jsonrpc": "2.0", "result": "DB query result: Joe", "id": "a"}';
+
+    assertEquals(
+      await respond(createReq(sentToServer), methods, {
+        argument: "DB query result:",
+        allMethods: true,
+      }),
+      removeWhiteSpace(sentToClient),
+    );
+    assertEquals(
+      await respond(createReq(sentToServer), methods, {
+        argument: "DB query result:",
+        methods: ["queryDatabase"],
+      }),
+      removeWhiteSpace(sentToClient),
+    );
+  },
+);
+
+Deno.test("set publicErrorStack to true", async function (): Promise<void> {
+  const sentToServer = '{"jsonrpc": "2.0", "method": "throwError", "id": 3}';
+  const sentToClient = '{"jsonrpc": "2.0", "result": 19, "id": 3}';
+
+  assertEquals(
+    typeof JSON.parse(
+      (await respond(createReq(sentToServer), methods)) as string,
+    ).error.data,
+    "undefined",
+  );
+  assertEquals(
+    typeof JSON.parse(
+      (await respond(createReq(sentToServer), methods, {
+        publicErrorStack: true,
+      })) as string,
+    ).error.data,
+    "string",
+  );
 });

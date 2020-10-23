@@ -18,99 +18,99 @@ https://nest.land/package/gentle_rpc.
 
 ## Example
 
-Always use versioned imports for your dependencies. For example
-`https://deno.land/x/gentle_rpc@v1.6/rpcServer.ts`.
-
 #### Server/deno side
 
 ```typescript
-import { serve } from "https://deno.land/std@0.74.0/http/server.ts";
-import { respond } from "https://deno.land/x/gentle_rpc/respond.ts";
+import { serve } from "https://deno.land/std@0.74.0/http/server.ts"
+import { respond } from "https://deno.land/x/gentle_rpc/respond.ts"
 
-console.log("listening on 0.0.0.0:8000");
-const s = serve("0.0.0.0:8000");
+const s = serve("0.0.0.0:8000")
+console.log("listening on 0.0.0.0:8000")
 
 const rpcMethods = {
   sayHello: ([w]: [string]) => `Hello ${w}`,
-  animalsMakeNoise: ([noise]: [string]) => noise.toUpperCase(),
-};
+  animalsMakeNoise: (noise: [string]) =>
+    noise.reduce((acc, el) => (acc + " " + el).toUpperCase()),
+}
 
 for await (const req of s) {
-  await respond(req, rpcMethods);
+  await respond(req, rpcMethods)
 }
 ```
 
 #### Client/remote side
 
 ```typescript
-import { createRemote } from "https://deno.land/x/gentle_rpc/request.ts";
+import { createRemote } from "https://deno.land/x/gentle_rpc/request.ts"
 
-const remote = createRemote("http://0.0.0.0:8000");
-const greeting = await remote.sayHello(["World"]);
+const remote = createRemote("http://0.0.0.0:8000")
+const greeting = await remote.sayHello(["World"])
 
-console.log(greeting); // Hello World
+console.log(greeting) // Hello World
 ```
 
 ## API
 
-### respond(request, methods, { additionalArgument? })
+### respond
 
-The additional argument is optional.
+Takes a `req`, `methods` and `options`. You can set options for an additional
+server argument or public error stacks.
 
 ```typescript
 for await (const req of s) {
-  await respond(req, rpcMethods, { additionalArgument: db });
+  await respond(req, methods)
 }
 ```
 
-### createRemote(resource, options) => Proxy
+### createRemote
 
-- `url: string | URL | Request` the URL to _fetch_ data from.
-- `options: Options` this object sets the _fetch_ API options (_RequestInit_).
-  Additionally, it contains the two optional properties:
-  - `notification` causes the server to make an empty response.
-  - `id` defines a custom id.
+Takes a `resource` and `options` and returns a javascript `proxy` what we will
+call `remote` from now on.
 
-#### remote.method(value[] | {key: value}) => Promise\<JsonValue | undefined>
+### remote
 
-Each method call of the remote object will look for the identically named method
-on the server side, where the methods are defined.
+All `remote` methods take `Array<JsonValue>` or `Record<string, JsonValue>` and
+return `Promise<JsonValue | undefined>`
 
 ```typescript
-const remote = createRemote("http://0.0.0.0:8000");
-await remote.sayHello(["World"]); // Hello World
+const remote = createRemote("http://0.0.0.0:8000")
+await remote.sayHello(["World"]) // Hello World
 ```
 
-### Batch Requests
+```typescript
+const remote = createRemote("http://0.0.0.0:8000", { isNotification: true })
+await remote.sayHello(["World"]) // undefined
+```
 
-#### remote.batch(["method", ["arg1"], ["arg1", "arg2"], ...])
+### remote.batch
+
+Takes either a `batchObject` or a `batchArray` as argument and return a promise.
+
+```typescript
+await remote.batch({
+  cat: ["sayHello", ["miaaow"]],
+  dog: ["animalsMakeNoise", ["wuuuufu"]],
+  donkey: ["sayHello"],
+  dragon: ["animalsMakeNoise", ["fiiiiire", "fiiiiire"]],
+})
+// { cat: "Hello miaaow", dog: "wuuuufu", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
+```
+
+The example above uses the object keys (_cat, dog, donkey, dragon_) as RPC
+_request object ids_ under the hood. The returned _RPC result_ values will be
+assigned to these keys.
+
+For other use cases you might prefer the following example:
 
 ```typescript
 await remote.batch([
   "animalsMakeNoise",
   ["miaaow"],
-  ["wuuuufu"],
-  ["iaaaiaia"],
+  ["wuuuufu", "wuuuufu"],
+  ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
   ["fiiiiire"],
-]);
-// [ "MIAAOW", "WUUUUFU", "IAAAIAIA", "FIIIIIRE" ]
-```
-
-#### remote.batch({key1: ["method1", ["arg1", "arg2"]], key2: ["method2", ["arg1"]], ...})
-
-This way of making _batch_ requests uses the object keys (_cat, dog, donkey,
-dragon_) as RPC _request object ids_ under the hood. The returned _RPC result_
-values will be assigned to these keys. Let's take a look at the following
-example:
-
-```typescript
-const noise2 = await remote.batch({
-  cat: ["sayHello", ["miaaow"]],
-  dog: ["animalsMakeNoise", ["wuuuufu"]],
-  donkey: ["sayHello"],
-  dragon: ["animalsMakeNoise", ["fiiiiire"]],
-});
-// { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE" }
+])
+// [ "miaaow", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "fiiiiire" ]
 ```
 
 ## Examples and Tests

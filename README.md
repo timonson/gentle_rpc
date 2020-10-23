@@ -30,7 +30,7 @@ console.log("listening on 0.0.0.0:8000")
 const rpcMethods = {
   sayHello: ([w]: [string]) => `Hello ${w}`,
   animalsMakeNoise: (noise: [string]) =>
-    noise.reduce((acc, el) => (acc + " " + el).toUpperCase()),
+    noise.map((el) => el.toUpperCase()).join(" "),
 }
 
 for await (const req of s) {
@@ -93,7 +93,7 @@ await remote.batch({
   donkey: ["sayHello"],
   dragon: ["animalsMakeNoise", ["fiiiiire", "fiiiiire"]],
 })
-// { cat: "Hello miaaow", dog: "wuuuufu", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
+// { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
 ```
 
 The example above uses the object keys (_cat, dog, donkey, dragon_) as RPC
@@ -110,7 +110,7 @@ await remote.batch([
   ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
   ["fiiiiire"],
 ])
-// [ "miaaow", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "fiiiiire" ]
+// [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
 ```
 
 ## Examples and Tests

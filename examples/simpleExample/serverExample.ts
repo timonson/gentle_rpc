@@ -11,7 +11,7 @@ const rpcMethods = {
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
     `${c} ${a * b}`,
   animalsMakeNoise: (noise: [string]) =>
-    noise.reduce((acc, el) => (acc + " " + el).toUpperCase()),
+    noise.map((el) => el.toUpperCase()).join(" "),
   addServerArg: ([name, additionalArg]: [string, { query: string }]) =>
     `${additionalArg.query} ${name}`,
 };

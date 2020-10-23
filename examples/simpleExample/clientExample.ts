@@ -41,5 +41,5 @@ console.log(greeting2); // Hello
 console.log(subtraction); // -19
 console.log(orderedParams); // Now comes a sentence with a lot of words.
 console.log(namedParams); // result: 50
-console.log(noise1); // [ "miaaow", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "fiiiiire" ]
-console.log(noise2); // { cat: "Hello miaaow", dog: "wuuuufu", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
+console.log(noise1); // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
+console.log(noise2); // { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }

@@ -7,7 +7,7 @@ import type {
   RpcResponse,
 } from "./json_rpc_types.ts";
 import type { ValidationObject } from "./validate_request.ts";
-import type { ServerMethods } from "./respond.ts";
+import type { RespondOptions, ServerMethods } from "./respond.ts";
 
 type RpcResponseOrNull = RpcResponse | null;
 type RpcResponseOrBatchOrNull = RpcResponse | RpcBatchResponse | null;
@@ -15,6 +15,7 @@ type RpcResponseOrBatchOrNull = RpcResponse | RpcBatchResponse | null;
 async function executeMethods(
   obj: ValidationObject,
   methods: ServerMethods,
+  publicErrorStack?: RespondOptions["publicErrorStack"],
 ): Promise<ValidationObject> {
   if (obj.isError) return obj;
   try {
@@ -22,11 +23,12 @@ async function executeMethods(
       ...obj,
       result: await methods[obj.method](obj.params),
     };
-  } catch {
+  } catch (err) {
     return {
       code: -32603,
       message: "Internal error",
       id: obj.id,
+      data: publicErrorStack ? err.stack : undefined,
       isError: true,
     };
   }
@@ -34,9 +36,16 @@ async function executeMethods(
 
 function addArgument(
   obj: ValidationObject,
-  argument?: Record<string, any>,
+  { argument, methods = [], allMethods }: RespondOptions,
 ): ValidationObject {
-  if (obj.isError || argument === undefined) return obj;
+  if (
+    obj.isError ||
+    argument === undefined ||
+    (!methods.includes(obj.method) && !allMethods)
+  ) {
+    return obj;
+  }
+
   if (!obj.params) {
     obj.params = [argument];
   } else if (Array.isArray(obj.params)) {
@@ -47,18 +56,19 @@ function addArgument(
       ...argument,
     };
   }
+
   return obj;
 }
 
 export async function createResponseBatch(
   maybeRpcBatchRequest: JsonArray,
   methods: ServerMethods,
-  additionalArgument?: Record<string, any>,
+  options: RespondOptions,
 ): Promise<RpcResponseOrBatchOrNull> {
   const batchResponse = (
     await Promise.all(
       maybeRpcBatchRequest.map((maybeRpcRequest) =>
-        createRpcResponseObject(maybeRpcRequest, methods, additionalArgument)
+        createRpcResponseObject(maybeRpcRequest, methods, options)
       ),
     )
   ).filter((obj: RpcResponseOrNull): obj is RpcResponse => obj !== null);
@@ -68,15 +78,14 @@ export async function createResponseBatch(
 export async function createRpcResponseObject(
   maybeRpcRequest: JsonValue,
   methods: ServerMethods,
-  additionalArgument?: Record<string, any>,
+  options: RespondOptions,
 ): Promise<RpcResponseOrNull> {
   const obj: ValidationObject = await executeMethods(
-    addArgument(
-      validateRequest(maybeRpcRequest, methods),
-      additionalArgument,
-    ),
+    addArgument(validateRequest(maybeRpcRequest, methods), options),
     methods,
+    options.publicErrorStack,
   );
+
   if (!obj.isError && obj.id !== undefined) {
     return {
       jsonrpc: "2.0",
@@ -89,6 +98,7 @@ export async function createRpcResponseObject(
       error: {
         code: obj.code,
         message: obj.message,
+        data: obj.data,
       },
       id: obj.id,
     };

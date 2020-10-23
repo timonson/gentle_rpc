@@ -19,6 +19,7 @@ export type ValidationFailure = {
   id: RpcId;
   message: string;
   code: number;
+  data?: Error["stack"];
   isError: true;
 };
 export type ValidationObject = ValidationSuccess | ValidationFailure;

@@ -5,13 +5,11 @@ import { serve } from "https://deno.land/std/http/server.ts";
 
 const proto = "http";
 const addr = "0.0.0.0:8000";
-const tlsOpts = undefined;
 console.log(`${proto.toUpperCase()} server listening on ${proto}://${addr}/`);
-const server = serve(tlsOpts || addr);
-for await (const req of server) {
+for await (const req of serve(addr)) {
   if (req.method === "GET") {
     fileHandler(req, { root: "./static" });
-  } else {
+  } else if (req.method === "POST") {
     respondRpc(req, rpcMethods);
-  }
+  } else req.respond({ status: 405 });
 }

@@ -4,7 +4,7 @@ import {
 } from "./create_response.ts";
 
 import type { JsonValue } from "./json_rpc_types.ts";
-import type { ServerRequest } from "https://deno.land/std/http/server.ts";
+import type { ServerRequest } from "https://deno.land/std@0.75.0/http/server.ts";
 
 export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue;

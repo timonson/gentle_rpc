@@ -1,14 +1,10 @@
 // Examples from: https://www.jsonrpc.org/specification#examples
 
-import {
-  assertEquals,
-  assertNotEquals,
-  assertThrowsAsync,
-} from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals, assertNotEquals, assertThrowsAsync } from "./depts.ts";
 
 import { respond } from "../respond.ts";
 
-import type { ServerRequest } from "https://deno.land/std/http/server.ts";
+import type { ServerRequest } from "./depts.ts";
 
 const methods = {
   subtract: (input: any) =>

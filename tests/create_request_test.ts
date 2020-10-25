@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertNotEquals,
-  assertThrowsAsync,
-} from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals, assertNotEquals, assertThrowsAsync } from "./deps.ts";
 
 import { createRequest, createRequestBatch } from "../create_request.ts";
 

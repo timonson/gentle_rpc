@@ -21,7 +21,7 @@ https://nest.land/package/gentle_rpc.
 #### Server/deno side
 
 ```typescript
-import { serve } from "https://deno.land/std@0.74.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.75.0/http/server.ts"
 import { respond } from "https://deno.land/x/gentle_rpc/respond.ts"
 
 const s = serve("0.0.0.0:8000")

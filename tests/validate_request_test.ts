@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertNotEquals,
-  assertThrows,
-} from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals, assertNotEquals, assertThrows } from "./deps.ts";
 
 import { validateRequest } from "../validate_request.ts";
 

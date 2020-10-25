@@ -1,7 +1,7 @@
 import { fileHandler } from "./file_server.ts";
 import { respond as respondRpc } from "../../respond.ts";
 import { rpcMethods } from "./rpcMethods.ts";
-import { serve } from "https://deno.land/std/http/server.ts";
+import { serve } from "https://deno.land/std@0.75.0/http/server.ts";
 
 const proto = "http";
 const addr = "0.0.0.0:8000";

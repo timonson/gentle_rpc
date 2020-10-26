@@ -1,10 +1,10 @@
-import { extname, posix } from "https://deno.land/std@0.75.0/path/mod.ts";
+import { extname, posix } from "https://deno.land/std@0.74.0/path/mod.ts";
 import {
   HTTPSOptions,
   Response,
   ServerRequest,
-} from "https://deno.land/std@0.75.0/http/server.ts";
-import { assert } from "https://deno.land/std@0.75.0/_util/assert.ts";
+} from "https://deno.land/std@0.74.0/http/server.ts";
+import { assert } from "https://deno.land/std@0.74.0/_util/assert.ts";
 
 const encoder = new TextEncoder();
 

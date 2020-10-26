@@ -1,4 +1,4 @@
-const rpcMethods = {
+export const rpcMethods = {
   sayHello: (w?: [string]) => `Hello ${w ? w[0] : ""}`,
   subtract: (input: number[]) => input[0] - input[1],
   callOrderedParameters: (words: string[]) =>

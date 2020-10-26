@@ -6,6 +6,17 @@ import { respond } from "../respond.ts";
 
 import type { ServerRequest } from "./depts.ts";
 
+function createReq(str: string) {
+  return {
+    respond: () => {},
+    body: new Deno.Buffer(new TextEncoder().encode(str).buffer),
+  } as any;
+}
+
+function removeWhiteSpace(str: string) {
+  return JSON.stringify(JSON.parse(str));
+}
+
 const methods = {
   subtract: (input: any) =>
     Array.isArray(input)
@@ -19,16 +30,6 @@ const methods = {
     throw new Error("my error");
   },
 };
-
-function createReq(str: string) {
-  return {
-    respond: () => {},
-    body: new Deno.Buffer(new TextEncoder().encode(str).buffer as ArrayBuffer),
-  } as any;
-}
-function removeWhiteSpace(str: string) {
-  return JSON.stringify(JSON.parse(str));
-}
 
 Deno.test("rpc call with positional parameters", async function (): Promise<
   void

@@ -4,7 +4,7 @@ import {
 } from "./create_response.ts";
 
 import type { JsonValue } from "./json_rpc_types.ts";
-import type { ServerRequest } from "https://deno.land/std@0.75.0/http/server.ts";
+import type { ServerRequest } from "https://deno.land/std@0.74.0/http/server.ts";
 
 export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue;
@@ -46,9 +46,6 @@ export async function respond(
     ? await createResponseBatch(parsedBody, methods, options)
     : await createRpcResponseObject(parsedBody, methods, options);
 
-  const headers = new Headers();
-  headers.set("content-type", "application/json");
-
   const response = jsonRpcResponseOrBatchOrNull === null
     ? undefined
     : JSON.stringify(jsonRpcResponseOrBatchOrNull);
@@ -56,7 +53,7 @@ export async function respond(
   req.respond(
     response === undefined ? { status: 204 } : {
       body: new TextEncoder().encode(response),
-      headers,
+      headers: new Headers([["content-type", "application/json"]]),
       status: 200,
     },
   );

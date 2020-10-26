@@ -39,7 +39,6 @@ export function createRequestBatch(
 ): RpcBatchRequest {
   return Array.isArray(batchObj)
     ? batchObj
-      // .slice(1)
       .map((el, _, array) =>
         createRequest({
           method: array[0] as string,

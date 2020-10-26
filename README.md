@@ -16,9 +16,12 @@ https://nest.land/package/gentle_rpc.
   [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
   for a simple API on the client side
 
-## Example
+## API
 
-#### Server/deno side
+### respond
+
+Takes a `req`, `methods` and `options`. You can set options for an additional
+server argument or public error stacks.
 
 ```typescript
 import { serve } from "https://deno.land/std@0.75.0/http/server.ts"
@@ -31,34 +34,12 @@ const rpcMethods = {
   sayHello: ([w]: [string]) => `Hello ${w}`,
   animalsMakeNoise: (noise: [string]) =>
     noise.map((el) => el.toUpperCase()).join(" "),
+  namedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
+    `${c} ${a * b}`,
 }
 
 for await (const req of s) {
   await respond(req, rpcMethods)
-}
-```
-
-#### Client/remote side
-
-```typescript
-import { createRemote } from "https://deno.land/x/gentle_rpc/request.ts"
-
-const remote = createRemote("http://0.0.0.0:8000")
-const greeting = await remote.sayHello(["World"])
-
-console.log(greeting) // Hello World
-```
-
-## API
-
-### respond
-
-Takes a `req`, `methods` and `options`. You can set options for an additional
-server argument or public error stacks.
-
-```typescript
-for await (const req of s) {
-  await respond(req, methods)
 }
 ```
 
@@ -74,7 +55,15 @@ return `Promise<JsonValue | undefined>`
 
 ```typescript
 const remote = createRemote("http://0.0.0.0:8000")
-await remote.sayHello(["World"]) // Hello World
+const greeting = await remote.sayHello(["World"])
+const namedParameters = await remote.namedParameters({
+  a: 5,
+  b: 10,
+  c: "result:",
+})
+
+console.log(greeting) // Hello World
+console.log(namedParameters) // result: 50
 ```
 
 ```typescript
@@ -84,7 +73,8 @@ await remote.sayHello(["World"]) // undefined
 
 ### remote.batch
 
-Takes either a `batchObject` or a `batchArray` as argument and return a promise.
+Takes either a `batchObject` or a `batchArray` as argument and returns a
+promise.
 
 ```typescript
 await remote.batch({

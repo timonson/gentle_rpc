@@ -45,13 +45,13 @@ for await (const req of s) {
 
 ### createRemote
 
-Takes a `resource` and `options` and returns a javascript `proxy` what we will
+Takes a `resource` and `options` and returns a javascript `proxy` which we will
 call `remote` from now on.
 
 ### remote
 
-All `remote` methods take `Array<JsonValue>` or `Record<string, JsonValue>` and
-return `Promise<JsonValue | undefined>`
+All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
+object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
 const remote = createRemote("http://0.0.0.0:8000")
@@ -86,7 +86,7 @@ await remote.batch({
 // { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
 ```
 
-The example above uses the object keys (_cat, dog, donkey, dragon_) as RPC
+The example above uses the object keys `cat`, `dog`, `donkey`, `dragon` as RPC
 _request object ids_ under the hood. The returned _RPC result_ values will be
 assigned to these keys.
 

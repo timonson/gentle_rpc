@@ -1,22 +1,28 @@
 import { respond as respondRpc } from "../../respond.ts";
 import { rpcMethods } from "./rpcMethods.ts";
-import { serve } from "https://deno.land/std@0.74.0/http/server.ts";
-import { fetch } from "https://cdn.jsdelivr.net/gh/lucacasonato/deno_local_file_fetch@164a369bd7311269289d438bb27a648731c33909/mod.ts";
-import { dirname } from "https://deno.land/std/path/mod.ts";
+import { serve } from "https://deno.land/std@0.75.0/http/server.ts";
+import { fetch } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.0.7/fetch/fetchPolyfill.ts";
+import { createFileUrl } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.0.7/fetch/createFileUrl.ts";
 
 const proto = "http";
 const addr = "0.0.0.0:8000";
+const root = "static";
 console.log(`${proto.toUpperCase()} server listening on ${proto}://${addr}/`);
 
 for await (const req of serve(addr)) {
   switch (req.method) {
     case "GET":
       const result = await fetch(
-        dirname(import.meta.url) + "/static" + req.url,
+        createFileUrl(
+          { moduleUrl: import.meta.url, reqUrl: req.url, root },
+        ),
       );
+
       req.respond(
         {
-          body: new Uint8Array(await result.arrayBuffer()),
+          body: result.ok
+            ? new Uint8Array(await result.arrayBuffer())
+            : await result.text(),
           headers: result.headers,
           status: result.status,
         },

@@ -54,13 +54,11 @@ All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
 object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
+import { createRemote } from "https://deno.land/x/gentle_rpc/request.ts"
+
 const remote = createRemote("http://0.0.0.0:8000")
 const greeting = await remote.sayHello(["World"])
-const namedParameters = await remote.namedParameters({
-  a: 5,
-  b: 10,
-  c: "result:",
-})
+const namedParameters = await remote.namedParameters({ a: 5, b: 10, c: "result:" })
 
 console.log(greeting) // Hello World
 console.log(namedParameters) // result: 50

@@ -1,8 +1,8 @@
 import { respond as respondRpc } from "../../respond.ts";
 import { rpcMethods } from "./rpcMethods.ts";
 import { serve } from "https://deno.land/std@0.75.0/http/server.ts";
-import { fetch } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.0.8/fetch/fetchPolyfill.ts";
-import { createFileUrl } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.0.8/fetch/createFileUrl.ts";
+import { fetch } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.1.0/fetch/fetchPolyfill.ts";
+import { createStaticFilePath } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.1.0/pathsAndUrls.ts";
 
 const proto = "http";
 const addr = "0.0.0.0:8000";
@@ -13,7 +13,7 @@ for await (const req of serve(addr)) {
   switch (req.method) {
     case "GET":
       const result = await fetch(
-        createFileUrl(
+        createStaticFilePath(
           { moduleUrl: import.meta.url, reqUrl: req.url, root },
         ),
       );

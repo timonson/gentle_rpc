@@ -1,7 +1,6 @@
 import { cleanBatch, createResponseObject } from "./creation.ts";
 import { validateRequest } from "./validation.ts";
 import {
-  internalMethods,
   makeInternalMethodsOptionsMaybe,
   subscriptionMap,
 } from "./ws_internal_methods.ts";
@@ -13,27 +12,18 @@ export async function handleWs(
   { socket, methods, options }: Omit<Input, "validationObject">,
 ) {
   console.log("socket connected!");
-  const extendedMethods = {
-    ...methods,
-    ...internalMethods,
-  };
   try {
     for await (const ev of socket) {
       if (typeof ev === "string") {
         // console.log("ws:Text", ev);
-        const validationObjectOrBatch = validateRequest(ev, extendedMethods);
+        const validationObjectOrBatch = validateRequest(ev, methods);
         const responseObjectOrBatchOrNull =
           Array.isArray(validationObjectOrBatch)
             ? await cleanBatch(
               validationObjectOrBatch.map(async (validationObject) =>
                 await createResponseObject(
                   makeInternalMethodsOptionsMaybe(
-                    {
-                      socket,
-                      validationObject,
-                      methods: extendedMethods,
-                      options,
-                    },
+                    { socket, validationObject, methods, options },
                   ),
                 )
               ),
@@ -43,7 +33,7 @@ export async function handleWs(
                 {
                   socket,
                   validationObject: validationObjectOrBatch,
-                  methods: extendedMethods,
+                  methods,
                   options,
                 },
               ),

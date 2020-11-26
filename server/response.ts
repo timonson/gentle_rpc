@@ -1,6 +1,7 @@
 import { handleHttpRequest } from "./http.ts";
 import { handleWs } from "./ws.ts";
 import { acceptWebSocket } from "../deps.ts";
+import { internalMethods } from "./ws_internal_methods.ts";
 
 import type { ServerRequest, WebSocket } from "../deps.ts";
 import type { JsonValue } from "../json_rpc_types.ts";
@@ -9,7 +10,6 @@ export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue | Promise<JsonValue>;
 };
 export type RespondOptions = {
-  proto?: "http" | "ws";
   argument?: any;
   methods?: (keyof ServerMethods)[];
   allMethods?: boolean;
@@ -22,8 +22,8 @@ export async function respond(
   methods: ServerMethods,
   options: RespondOptions = {},
 ) {
-  switch (options.proto) {
-    case "ws":
+  switch (req.headers.get("Upgrade")) {
+    case "websocket":
       const { conn, r: bufReader, w: bufWriter, headers } = req;
       return acceptWebSocket({
         conn,
@@ -31,11 +31,15 @@ export async function respond(
         bufWriter,
         headers,
       })
-        .then((socket: WebSocket) => handleWs({ socket, methods, options }))
+        .then((socket: WebSocket) =>
+          handleWs(
+            { socket, methods: { ...methods, ...internalMethods }, options },
+          )
+        )
         .catch(async (err) => {
           console.error(`failed to accept websocket: ${err}`);
           await req.respond({ status: 400 });
-          // return err;
+          return err;
         });
       break;
     default:

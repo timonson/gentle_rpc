@@ -14,6 +14,7 @@ function createReq(str: string) {
   return {
     respond: () => {},
     body: new Deno.Buffer(new TextEncoder().encode(str).buffer),
+    headers: new Headers([["Some", "Header"]]),
   } as any;
 }
 

@@ -5,13 +5,14 @@ import type { CreationInput } from "./creation.ts";
 import type { ValidationObject } from "./validation.ts";
 import type { RpcId, RpcMethod, RpcParams } from "../json_rpc_types.ts";
 import type { WebSocket } from "../deps.ts";
+import type { ServerMethods } from "./response.ts";
 
 export type Input = CreationInput & { socket: WebSocket };
 type SubscriptionMap = Map<WebSocket, { id: RpcId; method: RpcMethod }[]>;
 
 export const subscriptionMap: SubscriptionMap = new Map();
 
-export const internalMethods = {
+export const internalMethods: ServerMethods = {
   subscribe: ({ socket, validationObject, methods, options }: Input) => {
     if (isInternalMethodRpc(validationObject)) {
       const subscriptions = subscriptionMap.get(socket);

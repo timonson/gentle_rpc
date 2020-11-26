@@ -11,12 +11,11 @@ https://nest.land/package/gentle_rpc.
 ### respond
 
 Takes a `req`, `methods` and `options`. You can set options for an additional
-server argument or public error stacks. For WebSockets use the option
-`{proto: "ws"}`.
+server argument or public error stacks.
 
 ```typescript
 import { serve } from "https://deno.land/std@0.79.0/http/server.ts"
-import { respond } from "https://deno.land/x/gentle_rpc/respond.ts"
+import { respond } from "https://deno.land/x/gentle_rpc/mod.ts"
 
 const s = serve("0.0.0.0:8000")
 console.log("listening on 0.0.0.0:8000")
@@ -42,9 +41,11 @@ Takes a `resource` for HTTP or a `WebSocket` for WebSockets and returns a
 TypeScript `Proxy` or `Promise<Proxy>` which we will call `remote` from now on.
 
 ```typescript
-import { createRemote } from "../../mod.ts"
+import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts"
+
 // HTTP:
 const remote = createRemote("http://0.0.0.0:8000")
+
 // WebSocket:
 const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"))
 ```
@@ -71,7 +72,8 @@ const namedParams = await remote.callNamedParameters({
 ##### notification
 
 ```typescript
-const notification = await remote.sayHello.notify(["World"]) // undefined
+const notification = await remote.sayHello.notify(["World"])
+// undefined
 ```
 
 ##### batch
@@ -120,12 +122,6 @@ await remote.batch([
 
 ### WebSockets
 
-#### createRemote
-
-```typescript
-const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"))
-```
-
 #### remote
 
 The `remote` proxy methods return a
@@ -150,6 +146,7 @@ run(greeting.generator)
 // Hello World
 // Hello second World
 
+// Close the WebSocket connection:
 setTimeout(() => remote.socket.close(), 100)
 ```
 

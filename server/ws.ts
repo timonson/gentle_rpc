@@ -4,10 +4,10 @@ import {
   internalMethods,
   makeInternalMethodsOptionsMaybe,
   subscriptionMap,
-} from "./ws_internal_Methods.ts";
+} from "./ws_internal_methods.ts";
 import { isWebSocketCloseEvent, isWebSocketPingEvent } from "../deps.ts";
 
-import type { Input } from "./ws_internal_Methods.ts";
+import type { Input } from "./ws_internal_methods.ts";
 
 export async function handleWs(
   { socket, methods, options }: Omit<Input, "validationObject">,

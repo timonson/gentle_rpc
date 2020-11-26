@@ -1,27 +1,22 @@
-import { BadServerDataError, validateResponse } from "./validate_response.ts";
-import { createRequest, createRequestBatch } from "./create_request.ts";
+import { createRequest, createRequestBatch } from "./creation.ts";
+import { validateResponse } from "./validation.ts";
+import { BadServerDataError } from "./error.ts";
 
-import type { JsonArray, JsonValue, RpcRequest } from "./json_rpc_types.ts";
-import type { BatchArrayInput, BatchObjectInput } from "./create_request.ts";
+import type { Resource } from "./remote.ts";
+import type { JsonArray, JsonValue, RpcRequest } from "../json_rpc_types.ts";
+import type { BatchArrayInput, BatchObjectInput } from "./creation.ts";
 
 type BatchArrayOutput = JsonArray;
 type BatchObjectOutput = Record<string, JsonValue>;
-type ClientMethods = {
-  [method: string]: (
-    args?: RpcRequest["params"],
-  ) => Promise<JsonValue | undefined>;
-};
-type Resource = string | URL | Request;
-type Options = RequestInit & {
-  isNotification?: boolean;
-  id?: RpcRequest["id"];
-};
 
 function send(
   resource: Resource,
   fetchInit: RequestInit,
 ): Promise<JsonValue | undefined> {
-  return fetch(resource, fetchInit)
+  return fetch(
+    resource,
+    fetchInit,
+  )
     .then((res: Response) => {
       if (!res.ok) {
         return Promise.reject(
@@ -37,62 +32,57 @@ function send(
         return undefined;
       } else return res.json();
     })
-    .catch((err) => Promise.reject(new BadServerDataError(err.message, 32001)));
-}
-
-export function createRemote(resource: Resource, options: Options = {}) {
-  const handler = {
-    get(client: Client, name: RpcRequest["method"]) {
-      if (client[name as keyof Client] !== undefined) {
-        return client[name as keyof Client];
-      } else {
-        return (args?: RpcRequest["params"]) => client.request(name, args);
-      }
-    },
-  };
-  return new Proxy<ClientMethods>(new Client(resource, options), handler);
+    .catch((err) =>
+      Promise.reject(new BadServerDataError(err.message, -32001))
+    );
 }
 
 export function processBatchArray(
   rpcResponseBatch: JsonArray,
 ): BatchArrayOutput {
-  return rpcResponseBatch.map((rpcResponse) => validateResponse(rpcResponse));
+  return rpcResponseBatch.map((rpcResponse) =>
+    validateResponse(rpcResponse).result
+  );
 }
 
 export function processBatchObject(
   rpcResponseBatch: JsonArray,
 ): BatchObjectOutput {
   return rpcResponseBatch.reduce<BatchObjectOutput>((acc, rpcResponse: any) => {
-    acc[rpcResponse.id] = validateResponse(rpcResponse);
+    acc[rpcResponse.id] = validateResponse(rpcResponse).result;
     return acc;
   }, {});
 }
 
-class Client {
-  private url: Resource;
+export class Client {
+  private resource: Resource;
   private fetchInit: RequestInit;
-  private isNotification = false;
   [key: string]: any // necessary for es6 proxy
-  constructor(url: Resource, options: Options = {}) {
-    this.url = url;
-    options.isNotification && (this.isNotification = options.isNotification);
+  constructor(resource: Resource, options: RequestInit = {}) {
     this.fetchInit = {
       ...options,
       method: "POST",
       headers: { ...options.headers, "Content-Type": "application/json" },
     };
+    this.resource = resource;
   }
 
-  async batch(batchObj: BatchArrayInput): Promise<BatchArrayOutput | undefined>;
+  async batch(
+    batchObj: BatchArrayInput,
+    isNotification?: boolean,
+  ): Promise<BatchArrayOutput | undefined>;
   async batch(
     batchObj: BatchObjectInput,
   ): Promise<BatchObjectOutput | undefined>;
   async batch(
     batchObj: BatchArrayInput | BatchObjectInput,
+    isNotification?: boolean,
   ): Promise<BatchArrayOutput | BatchObjectOutput | undefined> {
-    const rpcResponseBatch = await send(this.url, {
+    const rpcResponseBatch = await send(this.resource, {
       ...this.fetchInit,
-      body: JSON.stringify(createRequestBatch(batchObj, this.isNotification)),
+      body: JSON.stringify(
+        createRequestBatch(batchObj, isNotification),
+      ),
     });
     try {
       if (rpcResponseBatch === undefined) {
@@ -104,7 +94,7 @@ class Client {
       } else {
         throw new BadServerDataError(
           "The server returned an invalid batch response.",
-          32004,
+          -32004,
         );
       }
     } catch (err) {
@@ -112,26 +102,26 @@ class Client {
     }
   }
 
-  async request(
+  async call(
     method: RpcRequest["method"],
     params: RpcRequest["params"],
+    isNotification = false,
   ): Promise<JsonValue | undefined> {
-    const rpcResponse = await send(this.url, {
+    const rpcRequestObj = createRequest({
+      method,
+      params,
+      isNotification,
+    });
+    const rpcResponse = await send(this.resource, {
       ...this.fetchInit,
       body: JSON.stringify(
-        createRequest({
-          method,
-          params,
-          isNotification: this.isNotification,
-          id: this.id,
-        }),
+        rpcRequestObj,
       ),
     });
-
     try {
       return rpcResponse === undefined
-        ? rpcResponse
-        : validateResponse(rpcResponse);
+        ? undefined
+        : validateResponse(rpcResponse).result;
     } catch (err) {
       return Promise.reject(err);
     }

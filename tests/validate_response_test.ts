@@ -1,6 +1,7 @@
-import { assertEquals, assertNotEquals, assertThrows } from "./deps.ts";
+import { assertEquals, assertNotEquals, assertThrows } from "./test_deps.ts";
 
-import { BadServerDataError, validateResponse } from "../validate_response.ts";
+import { validateResponse } from "../client/validation.ts";
+import { BadServerDataError } from "../client/error.ts";
 
 const methods = {
   subtract: (a: number, b: number) => a - b,
@@ -8,11 +9,19 @@ const methods = {
 Deno.test("validate response object", function (): void {
   assertEquals(
     validateResponse({ jsonrpc: "2.0", result: 19, id: 3 }),
-    19,
+    {
+      id: 3,
+      jsonrpc: "2.0",
+      result: 19,
+    },
   );
   assertEquals(
     validateResponse({ jsonrpc: "2.0", result: 19, id: null }),
-    19,
+    {
+      id: null,
+      jsonrpc: "2.0",
+      result: 19,
+    },
   );
   assertThrows((): void => {
     validateResponse({ jsonrpc: ".0", result: 19, id: 3 });

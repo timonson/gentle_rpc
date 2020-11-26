@@ -1,12 +1,11 @@
-import { ServerMethods } from "./respond.ts";
+import { ServerMethods } from "./response.ts";
 import type {
   JsonArray,
   JsonObject,
   JsonValue,
   RpcId,
   RpcMethod,
-  RpcRequest,
-} from "./json_rpc_types.ts";
+} from "../json_rpc_types.ts";
 
 export type ValidationSuccess = {
   id: RpcId;
@@ -21,6 +20,9 @@ export type ValidationFailure = {
   code: number;
   data?: Error["stack"];
   isError: true;
+  method?: undefined;
+  params?: undefined;
+  result?: undefined;
 };
 export type ValidationObject = ValidationSuccess | ValidationFailure;
 
@@ -55,7 +57,33 @@ function isObject(obj: unknown): obj is Record<string, any> {
   );
 }
 
+function tryToParse(json: string) {
+  try {
+    return [JSON.parse(json), null];
+  } catch {
+    return [null, {
+      code: -32700,
+      message: "Parse error",
+      id: null,
+      isError: true,
+    }];
+  }
+}
+
 export function validateRequest(
+  body: string,
+  methods: ServerMethods,
+): ValidationObject | ValidationObject[] {
+  const [decodedBody, parsingError] = tryToParse(body);
+  if (parsingError) return parsingError;
+  if (Array.isArray(decodedBody) && decodedBody.length > 0) {
+    return decodedBody.map((rpc) => validateRpcRequestObject(rpc, methods));
+  } else {
+    return validateRpcRequestObject(decodedBody, methods);
+  }
+}
+
+export function validateRpcRequestObject(
   decodedBody: any,
   methods: ServerMethods,
 ): ValidationObject {

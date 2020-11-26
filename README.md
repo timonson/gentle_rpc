@@ -6,36 +6,27 @@ the browser.
 This library is accessible through the https://deno.land/x/ service or through
 https://nest.land/package/gentle_rpc.
 
-## Features
-
-- Complies with the JSON-RPC 2.0
-  [**specification**](https://www.jsonrpc.org/specification)
-- Sends data with the
-  [**fetch API**](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-- Uses JavaScript/TypeScript native
-  [**proxies**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
-  for a simple API on the client side
-
-## API
+## Server
 
 ### respond
 
 Takes a `req`, `methods` and `options`. You can set options for an additional
-server argument or public error stacks.
+server argument or public error stacks. For WebSockets use the option
+`{proto: "ws"}`.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.75.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.79.0/http/server.ts"
 import { respond } from "https://deno.land/x/gentle_rpc/respond.ts"
 
 const s = serve("0.0.0.0:8000")
 console.log("listening on 0.0.0.0:8000")
 
 const rpcMethods = {
-  sayHello: ([w]: [string]) => `Hello ${w}`,
+  sayHello: (w: [string]) => `Hello ${w}`,
+  callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
+    `${c} ${a * b}`,
   animalsMakeNoise: (noise: [string]) =>
     noise.map((el) => el.toUpperCase()).join(" "),
-  namedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
-    `${c} ${a * b}`,
 }
 
 for await (const req of s) {
@@ -43,33 +34,59 @@ for await (const req of s) {
 }
 ```
 
-### createRemote
+## Client
 
-Takes a `resource` and `options` and returns a javascript `proxy` which we will
-call `remote` from now on.
+#### createRemote
 
-### remote
+Takes a `resource` for HTTP or a `WebSocket` for WebSockets and returns a
+TypeScript `Proxy` or `Promise<Proxy>` which we will call `remote` from now on.
+
+```typescript
+import { createRemote } from "../../mod.ts"
+// HTTP:
+const remote = createRemote("http://0.0.0.0:8000")
+// WebSocket:
+const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"))
+```
+
+### HTTP
+
+#### remote
 
 All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
 object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
-import { createRemote } from "https://deno.land/x/gentle_rpc/request.ts"
-
-const remote = createRemote("http://0.0.0.0:8000")
 const greeting = await remote.sayHello(["World"])
-const namedParameters = await remote.namedParameters({ a: 5, b: 10, c: "result:" })
+// Hello World
 
-console.log(greeting) // Hello World
-console.log(namedParameters) // result: 50
+const namedParams = await remote.callNamedParameters({
+  a: 5,
+  b: 10,
+  c: "result:",
+})
+// result: 50
 ```
+
+##### notification
 
 ```typescript
-const remote = createRemote("http://0.0.0.0:8000", { isNotification: true })
-await remote.sayHello(["World"]) // undefined
+const notification = await remote.sayHello.notify(["World"]) // undefined
 ```
 
-### remote.batch
+##### batch
+
+```typescript
+const noise1 = await remote.animalsMakeNoise.batch([
+  ["miaaow"],
+  ["wuuuufu", "wuuuufu"],
+  ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
+  ["fiiiiire"],
+])
+// [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
+```
+
+##### batch with different methods
 
 Takes either a `batchObject` or a `batchArray` as argument and returns a
 promise.
@@ -99,6 +116,65 @@ await remote.batch([
   ["fiiiiire"],
 ])
 // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
+```
+
+### WebSockets
+
+#### createRemote
+
+```typescript
+const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"))
+```
+
+#### remote
+
+The `remote` proxy methods return a
+`{ generator: AsyncGenerator<JsonValue>, send: (params?: RpcParams) => void }`
+object.
+
+```typescript
+async function run(iter: AsyncGenerator<unknown>) {
+  try {
+    for await (let x of iter) {
+      console.log(x)
+    }
+  } catch (err) {
+    console.log(err.message, err.code)
+  }
+}
+
+const greeting = remote.sayHello(["World"])
+greeting.send(["second World"])
+
+run(greeting.generator)
+// Hello World
+// Hello second World
+
+setTimeout(() => remote.socket.close(), 100)
+```
+
+##### notification
+
+```typescript
+const notification = remote.sayHello.notify(["World"])
+```
+
+##### messaging between multiple clients
+
+Other clients can listen to the _emitted_ messages by _subscribing_ to the same
+method.
+
+```typescript
+const greeting = remote.sayHello.subscribe()
+greeting.emit(["first"])
+greeting.emitBatch([["second"], ["third"]])
+run(greeting.generator)
+// Hello first
+// Hello second
+// Hello third
+
+// You can optionally unsubscribe:
+greeting.unsubscribe()
 ```
 
 ## Examples and Tests

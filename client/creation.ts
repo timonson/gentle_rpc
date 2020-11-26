@@ -1,16 +1,9 @@
-import type {
-  JsonArray,
-  JsonObject,
-  RpcBatchRequest,
-  RpcParams,
-  RpcRequest,
-} from "./json_rpc_types.ts";
+import { v4 } from "../deps.ts";
 
-export type BatchArrayInput = [
-  string,
-  ...(JsonArray | JsonObject | undefined)[],
-];
-export type BatchObjectInput = Record<string, [string, RpcParams?]>;
+import type { RpcBatchRequest, RpcRequest } from "../json_rpc_types.ts";
+
+export type BatchArrayInput = [string, ...RpcRequest["params"][]];
+export type BatchObjectInput = Record<string, [string, RpcRequest["params"]?]>;
 
 export function createRequest({
   method,
@@ -28,7 +21,7 @@ export function createRequest({
     method,
   };
   params && (rpcRequest.params = params);
-  id = isNotification ? undefined : id !== undefined ? id : generateID(5);
+  id = isNotification ? undefined : id !== undefined ? id : v4.generate();
   id !== undefined && (rpcRequest.id = id);
   return rpcRequest;
 }
@@ -42,7 +35,7 @@ export function createRequestBatch(
       .map((el, _, array) =>
         createRequest({
           method: array[0] as string,
-          params: el as RpcParams | undefined,
+          params: el as RpcRequest["params"],
           isNotification,
         })
       )
@@ -55,12 +48,4 @@ export function createRequestBatch(
         id: key,
       })
     );
-}
-
-function generateID(size: number): string {
-  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
-  for (var str = "", i = 0; i < size; i += 1) {
-    str += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return str;
 }

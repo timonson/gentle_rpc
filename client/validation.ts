@@ -1,21 +1,11 @@
+import { BadServerDataError } from "./error.ts";
+
 import type {
   JsonValue,
   RpcFailure,
   RpcResponseBasis,
   RpcSuccess,
-} from "./json_rpc_types.ts";
-
-export class BadServerDataError extends Error {
-  name: string;
-  code: number;
-  data?: unknown;
-  constructor(message: string, errorCode: number, data?: unknown) {
-    super(message);
-    this.name = this.constructor.name;
-    this.code = errorCode;
-    this.data = data;
-  }
-}
+} from "../json_rpc_types.ts";
 
 function validateRpcBasis(data: any): data is RpcResponseBasis {
   return (
@@ -35,9 +25,9 @@ function validateRpcFailure(data: any): data is RpcFailure {
   );
 }
 
-export function validateResponse(data: JsonValue): JsonValue {
+export function validateResponse(data: JsonValue): RpcSuccess {
   if (validateRpcBasis(data)) {
-    if (validateRpcSuccess(data)) return data.result;
+    if (validateRpcSuccess(data)) return data;
     else if (validateRpcFailure(data)) {
       throw new BadServerDataError(
         data.error.message,

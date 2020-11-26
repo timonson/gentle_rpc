@@ -1,6 +1,6 @@
-import { respond as respondRpc } from "../../respond.ts";
+import { respond as respondRpc } from "../../mod.ts";
 import { rpcMethods } from "./rpcMethods.ts";
-import { serve } from "https://deno.land/std@0.75.0/http/server.ts";
+import { serve } from "../example_deps.ts";
 import { fetch } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.1.0/fetch/fetchPolyfill.ts";
 import { createStaticFilePath } from "https://cdn.jsdelivr.net/gh/timonson/salad@v0.1.0/pathsAndUrls.ts";
 

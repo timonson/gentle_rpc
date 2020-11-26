@@ -1,10 +1,14 @@
 // Examples from: https://www.jsonrpc.org/specification#examples
 
-import { assertEquals, assertNotEquals, assertThrowsAsync } from "./deps.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertThrowsAsync,
+} from "./test_deps.ts";
 
-import { respond } from "../respond.ts";
+import { respond } from "../server/response.ts";
 
-import type { ServerRequest } from "./deps.ts";
+import type { ServerRequest } from "./test_deps.ts";
 
 function createReq(str: string) {
   return {

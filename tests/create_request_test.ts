@@ -1,6 +1,10 @@
-import { assertEquals, assertNotEquals, assertThrowsAsync } from "./deps.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertThrowsAsync,
+} from "./test_deps.ts";
 
-import { createRequest, createRequestBatch } from "../create_request.ts";
+import { createRequest, createRequestBatch } from "../client/creation.ts";
 
 Deno.test("create request object", function (): void {
   assertEquals(

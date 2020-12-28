@@ -4,7 +4,7 @@ import {
   makeInternalMethodsOptionsMaybe,
   subscriptionMap,
 } from "./ws_internal_methods.ts";
-import { isWebSocketCloseEvent, isWebSocketPingEvent } from "../deps.ts";
+import { isWebSocketCloseEvent, isWebSocketPingEvent } from "./deps.ts";
 
 import type { Input } from "./ws_internal_methods.ts";
 

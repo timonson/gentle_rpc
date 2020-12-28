@@ -4,7 +4,7 @@ import { validateRequest, validateRpcRequestObject } from "./validation.ts";
 import type { CreationInput } from "./creation.ts";
 import type { ValidationObject } from "./validation.ts";
 import type { RpcId, RpcMethod, RpcParams } from "../json_rpc_types.ts";
-import type { WebSocket } from "../deps.ts";
+import type { WebSocket } from "./deps.ts";
 import type { ServerMethods } from "./response.ts";
 
 export type Input = CreationInput & { socket: WebSocket };

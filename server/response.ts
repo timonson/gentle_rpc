@@ -1,9 +1,9 @@
 import { handleHttpRequest } from "./http.ts";
 import { handleWs } from "./ws.ts";
-import { acceptWebSocket } from "../deps.ts";
+import { acceptWebSocket } from "./deps.ts";
 import { internalMethods } from "./ws_internal_methods.ts";
 
-import type { ServerRequest, WebSocket } from "../deps.ts";
+import type { ServerRequest, WebSocket } from "./deps.ts";
 import type { JsonValue } from "../json_rpc_types.ts";
 
 export type ServerMethods = {

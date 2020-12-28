@@ -1,4 +1,4 @@
-import { v4 } from "../deps.ts";
+import { generate as generateV4Uuid } from "./deps.ts";
 
 import type { RpcBatchRequest, RpcRequest } from "../json_rpc_types.ts";
 
@@ -21,7 +21,7 @@ export function createRequest({
     method,
   };
   params && (rpcRequest.params = params);
-  id = isNotification ? undefined : id !== undefined ? id : v4.generate();
+  id = isNotification ? undefined : id !== undefined ? id : generateV4Uuid();
   id !== undefined && (rpcRequest.id = id);
   return rpcRequest;
 }

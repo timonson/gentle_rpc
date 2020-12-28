@@ -2,7 +2,6 @@ import { createRequest } from "./creation.ts";
 import { validateResponse } from "./validation.ts";
 import { BadServerDataError } from "./error.ts";
 
-import type { Resource } from "./remote.ts";
 import type { JsonValue, RpcRequest } from "../json_rpc_types.ts";
 
 function isObject(obj: unknown): obj is Record<string, unknown> {

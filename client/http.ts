@@ -14,7 +14,7 @@ function send(
   fetchInit: RequestInit,
 ): Promise<JsonValue | undefined> {
   return fetch(
-    resource,
+    resource instanceof URL ? resource.href : resource,
     fetchInit,
   )
     .then((res: Response) => {
@@ -58,11 +58,20 @@ export class Client {
   private resource: Resource;
   private fetchInit: RequestInit;
   [key: string]: any // necessary for es6 proxy
-  constructor(resource: Resource, options: RequestInit = {}) {
+  constructor(
+    resource: Resource,
+    options: RequestInit = { headers: new Headers() },
+  ) {
+    if (options.headers instanceof Headers) {
+      options.headers.set("Content-Type", "application/json");
+    }
     this.fetchInit = {
       ...options,
       method: "POST",
-      headers: { ...options.headers, "Content-Type": "application/json" },
+      headers: options.headers instanceof Headers ? options.headers : {
+        ...options.headers,
+        "Content-Type": "application/json",
+      },
     };
     this.resource = resource;
   }

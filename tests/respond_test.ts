@@ -28,7 +28,7 @@ const methods = {
       ? input[0] - input[1]
       : input.minuend - input.subtrahend,
   sum: (arr: number[]) => arr.reduce((acc, el) => acc + el),
-  queryDatabase: ([name, argument]: [string, string]) => `${argument} ${name}`,
+  queryDatabase: ({ name, s }: { name: string; s: string }) => `${s} ${name}`,
   notify_hello: () => "hello",
   get_data: () => ["hello", 5],
   throwError: () => {
@@ -179,20 +179,20 @@ Deno.test(
   "rpc call with additional argument from server",
   async function (): Promise<void> {
     const sentToServer =
-      '{"jsonrpc": "2.0", "method": "queryDatabase", "params": ["Joe"], "id": "a"}';
+      '{"jsonrpc": "2.0", "method": "queryDatabase", "params": {"name":"Joe"}, "id": "a"}';
     const sentToClient =
       '{"jsonrpc": "2.0", "result": "DB query result: Joe", "id": "a"}';
 
     assertEquals(
       await respond(createReq(sentToServer), methods, {
-        argument: "DB query result:",
+        argument: { s: "DB query result:" },
         allMethods: true,
       }),
       removeWhiteSpace(sentToClient),
     );
     assertEquals(
       await respond(createReq(sentToServer), methods, {
-        argument: "DB query result:",
+        argument: { s: "DB query result:" },
         methods: ["queryDatabase"],
       }),
       removeWhiteSpace(sentToClient),

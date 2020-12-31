@@ -10,7 +10,7 @@ export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue | Promise<JsonValue>;
 };
 export type RespondOptions = {
-  argument?: any;
+  argument?: Record<string, any>;
   methods?: (keyof ServerMethods)[];
   allMethods?: boolean;
   publicErrorStack?: boolean;

@@ -48,17 +48,10 @@ function addArgument(
   ) {
     return obj;
   }
-
-  if (!obj.params) {
-    obj.params = [argument];
-  } else if (Array.isArray(obj.params)) {
-    obj.params.push(argument);
-  } else {
-    obj.params = {
-      ...obj.params,
-      ...argument,
-    };
-  }
+  obj.params = {
+    ...obj.params,
+    ...argument,
+  };
 
   return obj;
 }

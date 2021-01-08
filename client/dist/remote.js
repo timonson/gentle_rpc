@@ -97,18 +97,13 @@ function processBatchObject(rpcResponseBatch) {
 }
 class Client {
     constructor(resource, options = {
-        headers: new Headers()
     }){
-        if (options.headers instanceof Headers) {
-            options.headers.set("Content-Type", "application/json");
-        }
+        const headers = options.headers === undefined ? new Headers() : options.headers instanceof Headers ? options.headers : new Headers(Object.entries(options.headers));
+        headers.set("Content-Type", "application/json");
         this.fetchInit = {
             ...options,
             method: "POST",
-            headers: options.headers instanceof Headers ? options.headers : {
-                ...options.headers,
-                "Content-Type": "application/json"
-            }
+            headers
         };
         this.resource = resource;
     }
@@ -129,14 +124,19 @@ class Client {
             return Promise.reject(err);
         }
     }
-    async call(method, params, isNotification = false) {
+    async call(method, params, { isNotification , jwt  } = {
+    }) {
         const rpcRequestObj = createRequest({
             method,
             params,
             isNotification
         });
+        const fetchInit = this.fetchInit;
+        if (jwt && fetchInit.headers instanceof Headers) {
+            fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
+        }
         const rpcResponse = await send(this.resource, {
-            ...this.fetchInit,
+            ...fetchInit,
             body: JSON.stringify(rpcRequestObj)
         });
         try {
@@ -265,7 +265,13 @@ const httpProxyHandler = {
         } else {
             const proxyFunction = (args)=>client.call(name, args)
             ;
-            proxyFunction.notify = (args)=>client.call(name, args, true)
+            proxyFunction.notify = (args)=>client.call(name, args, {
+                    isNotification: true
+                })
+            ;
+            proxyFunction.auth = (jwt)=>(args)=>client.call(name, args, {
+                        jwt
+                    })
             ;
             proxyFunction.batch = (args, isNotification = false)=>client.batch([
                     name,

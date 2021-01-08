@@ -13,9 +13,9 @@ type HttpProxyFunction = {
   notify: (
     params?: RpcRequest["params"],
   ) => ReturnType<HttpClient["call"]>;
-  auth: (jwt: string) => (
-    params?: RpcRequest["params"],
-  ) => ReturnType<HttpClient["call"]>;
+  auth: (
+    jwt: string,
+  ) => (params?: RpcRequest["params"]) => ReturnType<HttpClient["call"]>;
   batch: (
     params: RpcRequest["params"][],
     isNotification?: boolean,

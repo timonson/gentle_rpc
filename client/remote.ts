@@ -13,6 +13,9 @@ type HttpProxyFunction = {
   notify: (
     params?: RpcRequest["params"],
   ) => ReturnType<HttpClient["call"]>;
+  auth: (jwt: string) => (
+    params?: RpcRequest["params"],
+  ) => ReturnType<HttpClient["call"]>;
   batch: (
     params: RpcRequest["params"][],
     isNotification?: boolean,
@@ -46,7 +49,9 @@ const httpProxyHandler = {
     } else {
       const proxyFunction: HttpProxyFunction = (args?) =>
         client.call(name, args);
-      proxyFunction.notify = (args?) => client.call(name, args, true);
+      proxyFunction.notify = (args?) =>
+        client.call(name, args, { isNotification: true });
+      proxyFunction.auth = (jwt) => (args?) => client.call(name, args, { jwt });
       proxyFunction.batch = (args, isNotification = false) =>
         client.batch([name, ...args], isNotification);
       return proxyFunction;

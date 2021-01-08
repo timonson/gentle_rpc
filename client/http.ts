@@ -60,18 +60,18 @@ export class Client {
   [key: string]: any // necessary for es6 proxy
   constructor(
     resource: Resource,
-    options: RequestInit = { headers: new Headers() },
+    options: RequestInit = {},
   ) {
-    if (options.headers instanceof Headers) {
-      options.headers.set("Content-Type", "application/json");
-    }
+    const headers = options.headers === undefined
+      ? new Headers()
+      : options.headers instanceof Headers
+      ? options.headers
+      : new Headers(Object.entries(options.headers));
+    headers.set("Content-Type", "application/json");
     this.fetchInit = {
       ...options,
       method: "POST",
-      headers: options.headers instanceof Headers ? options.headers : {
-        ...options.headers,
-        "Content-Type": "application/json",
-      },
+      headers,
     };
     this.resource = resource;
   }
@@ -114,15 +114,19 @@ export class Client {
   async call(
     method: RpcRequest["method"],
     params: RpcRequest["params"],
-    isNotification = false,
+    { isNotification, jwt }: { isNotification?: boolean; jwt?: string } = {},
   ): Promise<JsonValue | undefined> {
     const rpcRequestObj = createRequest({
       method,
       params,
       isNotification,
     });
+    const fetchInit = this.fetchInit;
+    if (jwt && fetchInit.headers instanceof Headers) {
+      fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
+    }
     const rpcResponse = await send(this.resource, {
-      ...this.fetchInit,
+      ...fetchInit,
       body: JSON.stringify(
         rpcRequestObj,
       ),

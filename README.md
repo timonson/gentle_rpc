@@ -1,6 +1,7 @@
 # gentle_rpc
 
-JSON-RPC 2.0 library with WebSockets and HTTP support for [deno](https://github.com/denoland/deno) and the browser.
+JSON-RPC 2.0 library with WebSockets and HTTP support for
+[deno](https://github.com/denoland/deno) and the browser.
 
 This library is accessible through the https://deno.land/x/ service or through
 https://nest.land/package/gentle_rpc.
@@ -13,7 +14,7 @@ Takes a `req`, `methods` and `options`. You can set options for an additional
 server argument or public error stacks.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.79.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.83.0/http/server.ts"
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts"
 
 const s = serve("0.0.0.0:8000")
@@ -85,6 +86,15 @@ const noise1 = await remote.animalsMakeNoise.batch([
   ["fiiiiire"],
 ])
 // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
+```
+
+##### auth
+
+This method will set the `Authorization` header to `Bearer ${jwt}`.
+
+```typescript
+const greeting = await remote.sayHello.auth(jwt)(["World"])
+// Hello World
 ```
 
 ##### batch with different methods

@@ -131,14 +131,17 @@ class Client {
             params,
             isNotification
         });
-        const fetchInit = this.fetchInit;
-        if (jwt && fetchInit.headers instanceof Headers) {
-            fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
+        if (jwt && this.fetchInit.headers instanceof Headers) {
+            this.fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
         }
-        const rpcResponse = await send(this.resource, {
-            ...fetchInit,
+        const rpcResponsePromise = send(this.resource, {
+            ...this.fetchInit,
             body: JSON.stringify(rpcRequestObj)
         });
+        if (jwt && this.fetchInit.headers instanceof Headers) {
+            this.fetchInit.headers.delete("Authorization");
+        }
+        const rpcResponse = await rpcResponsePromise;
         try {
             return rpcResponse === undefined ? undefined : validateResponse(rpcResponse).result;
         } catch (err) {

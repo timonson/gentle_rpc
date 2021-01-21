@@ -131,6 +131,9 @@ await remote.batch([
 
 ### WebSockets
 
+The support for WebSockets is still experimental and has not been fully tested
+yet.
+
 #### remote
 
 The `remote` proxy methods return a

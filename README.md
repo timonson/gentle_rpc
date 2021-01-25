@@ -136,12 +136,36 @@ yet.
 
 #### remote
 
-The `remote` proxy methods return a
-`{ generator: AsyncGenerator<JsonValue>, send: (params?: RpcParams) => void }`
-object.
+All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
+object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
-async function run(iter: AsyncGenerator<unknown>) {
+const noise = await remote.animalsMakeNoise(["wuufff"])
+console.log(noise)
+
+remote.socket.close()
+```
+
+##### notification
+
+```typescript
+const notification = await remote.animalsMakeNoise.notify(["wuufff"])
+```
+
+##### messaging between multiple clients
+
+By using the `subscribe` method you can send messages between multiple clients.
+It returns an object with a generator property
+`{ generator: AsyncGenerator<JsonValue>}` and the methods `emit`, `emitBatch`
+and `unsubscribe`.
+
+Other clients can _listen to_ and _emit_ messages by _subscribing_ to the same
+method.
+
+```typescript
+// First client
+
+export async function run(iter: AsyncGenerator<unknown>) {
   try {
     for await (let x of iter) {
       console.log(x)
@@ -151,33 +175,19 @@ async function run(iter: AsyncGenerator<unknown>) {
   }
 }
 
-const greeting = remote.sayHello(["World"])
-greeting.send(["second World"])
-
-run(greeting.generator)
-// Hello World
-// Hello second World
-
-// Close the WebSocket connection:
-setTimeout(() => remote.socket.close(), 100)
-```
-
-##### notification
-
-```typescript
-const notification = remote.sayHello.notify(["World"])
-```
-
-##### messaging between multiple clients
-
-Other clients can listen to the _emitted_ messages by _subscribing_ to the same
-method.
-
-```typescript
 const greeting = remote.sayHello.subscribe()
-greeting.emit(["first"])
-greeting.emitBatch([["second"], ["third"]])
 run(greeting.generator)
+greeting.emit(["first"])
+// Hello first
+// Hello second
+// Hello third
+```
+
+```typescript
+// Second client
+const greeting = remote.sayHello.subscribe()
+run(greeting.generator)
+greeting.emitBatch([["second"], ["third"]])
 // Hello first
 // Hello second
 // Hello third

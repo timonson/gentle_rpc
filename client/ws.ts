@@ -14,7 +14,9 @@ export class Client {
   private payloadData!: Promise<any>;
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
-  constructor(socket: WebSocket) {
+  constructor(
+    socket: WebSocket,
+  ) {
     this.socket = socket;
     this.getPayloadData(socket);
   }
@@ -33,6 +35,7 @@ export class Client {
 
   private async *iterateOverPayloadData(
     rpcRequest: RpcRequest,
+    { isOnetime }: { isOnetime: boolean },
   ): AsyncGenerator<JsonValue> {
     while (this.socket.readyState < 2) {
       try {
@@ -48,6 +51,7 @@ export class Client {
           continue;
         } else {
           if (
+            !isOnetime &&
             isObject(rpcResponse.result) &&
             rpcResponse.result.id === rpcRequest.id
           ) {
@@ -63,14 +67,23 @@ export class Client {
           }
           if (rpcResponse.id === rpcRequest.id) {
             yield rpcResponse.result;
+            if (isOnetime) {
+              break;
+            }
           }
         }
       } catch (err) {
-        yield Promise.reject(
-          err instanceof BadServerDataError
-            ? err
-            : new BadServerDataError(err.message, -32001),
-        );
+        if (err.id === rpcRequest.id) {
+          yield Promise.reject(err);
+          if (isOnetime) {
+            break;
+          }
+        } else {
+          yield Promise.reject(
+            new BadServerDataError(null, err.message, -32001),
+          );
+          break;
+        }
       }
     }
   }
@@ -79,10 +92,7 @@ export class Client {
     method: RpcRequest["method"],
     params: RpcRequest["params"],
     isNotification = false,
-  ): {
-    generator: AsyncGenerator<JsonValue>;
-    send: (params?: RpcRequest["params"]) => void;
-  } {
+  ): Promise<JsonValue | undefined> {
     const rpcRequest = createRequest({
       method,
       params,
@@ -91,14 +101,11 @@ export class Client {
     this.socket.send(JSON.stringify(
       rpcRequest,
     ));
-    return {
-      generator: this.iterateOverPayloadData(rpcRequest),
-      send: (params?: RpcRequest["params"]): void => {
-        return this.socket.send(JSON.stringify(
-          { ...rpcRequest, params },
-        ));
-      },
-    };
+    if (isNotification) return Promise.resolve(undefined);
+    const generator = this.iterateOverPayloadData(rpcRequest, {
+      isOnetime: true,
+    });
+    return generator.next().then((p) => p.value);
   }
 
   subscribe(
@@ -106,13 +113,17 @@ export class Client {
   ) {
     const rpcRequest = createRequest({
       method: "subscribe",
-      params: { method },
     });
     this.socket.send(JSON.stringify(
-      rpcRequest,
+      {
+        ...rpcRequest,
+        params: { method, id: rpcRequest.id as string },
+      },
     ));
     return {
-      generator: this.iterateOverPayloadData(rpcRequest),
+      generator: this.iterateOverPayloadData(rpcRequest, {
+        isOnetime: false,
+      }),
       unsubscribe: (params?: RpcRequest["params"]): void => {
         const rpcRequestUnsubscription = createRequest({
           method: "unsubscribe",

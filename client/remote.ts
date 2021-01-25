@@ -95,11 +95,15 @@ export function createRemote(
   if (resourceOrSocket instanceof WebSocket) {
     return listen(resourceOrSocket)
       .then((socket) =>
-        new Proxy<WsProxy>(new WsClient(socket), wsProxyHandler)
+        new Proxy<WsProxy>(
+          new WsClient(socket),
+          wsProxyHandler,
+        )
       )
       .catch((err) =>
         Promise.reject(
           new BadServerDataError(
+            null,
             "An error event occured on the WebSocket connection.",
             -32005,
             err.stack,

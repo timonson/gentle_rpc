@@ -15,6 +15,7 @@ export type RespondOptions = {
   allMethods?: boolean;
   publicErrorStack?: boolean;
   headers?: [string, string][];
+  disableInternalMethods?: boolean;
 };
 
 export async function respond(
@@ -31,11 +32,27 @@ export async function respond(
         bufWriter,
         headers,
       })
-        .then((socket: WebSocket) =>
-          handleWs(
-            { socket, methods: { ...methods, ...internalMethods }, options },
-          )
-        )
+        .then((socket: WebSocket) => {
+          const methodsAndIdsStore = new Map();
+          if (options.disableInternalMethods) {
+            return handleWs(
+              { socket, methods: { ...methods }, options, methodsAndIdsStore },
+            );
+          } else {
+            return handleWs(
+              {
+                socket,
+                methods: { ...methods, ...internalMethods },
+                options: {
+                  ...options,
+                  argument: { methodsAndIdsStore },
+                  methods: ["subscribe", "unsubscribe"],
+                },
+                methodsAndIdsStore,
+              },
+            );
+          }
+        })
         .catch(async (err) => {
           console.error(`failed to accept websocket: ${err}`);
           await req.respond({ status: 400 });

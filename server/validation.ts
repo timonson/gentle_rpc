@@ -34,7 +34,7 @@ function isRpcMethod(input: unknown): input is string {
   return typeof input === "string" && !input.startsWith("rpc.");
 }
 
-function isRpcParams(input: unknown): input is JsonArray | JsonObject {
+export function isRpcParams(input: unknown): input is JsonArray | JsonObject {
   return typeof input === "object" && input !== null;
 }
 

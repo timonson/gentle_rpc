@@ -30,6 +30,7 @@ export function validateResponse(data: JsonValue): RpcSuccess {
     if (validateRpcSuccess(data)) return data;
     else if (validateRpcFailure(data)) {
       throw new BadServerDataError(
+        data.id,
         data.error.message,
         data.error.code,
         data.error.data,
@@ -37,6 +38,7 @@ export function validateResponse(data: JsonValue): RpcSuccess {
     }
   }
   throw new BadServerDataError(
+    null,
     "Received data is no RPC response object.",
     -32003,
   );

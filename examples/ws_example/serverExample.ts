@@ -9,8 +9,9 @@ const rpcMethods = {
   sayHello: (w: [string]) => `Hello ${w}`,
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
     `${c} ${a * b}`,
-  animalsMakeNoise: (noise: [string]) =>
-    noise.map((el) => el.toUpperCase()).join(" "),
+  animalsMakeNoise: (noise: [string]) => {
+    return noise.map((el) => el.toUpperCase()).join(" ");
+  },
   subtract: (input: number[]) => {
     return input[0] - input[1];
   },

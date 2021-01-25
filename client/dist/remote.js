@@ -1,38 +1,28 @@
+function validateRpcBasis(data) {
+    return data?.jsonrpc === "2.0" && (typeof data?.id === "number" || typeof data?.id === "string" || data?.id === null);
+}
+function validateRpcSuccess(data) {
+    return "result" in data;
+}
+function validateRpcFailure(data) {
+    return typeof data?.error?.code === "number" && typeof data?.error?.message === "string";
+}
 class BadServerDataError extends Error {
-    constructor(message, errorCode, data){
+    constructor(id, message, errorCode, data){
         super(message);
-        this.name = this.constructor.name;
+        this.id = id, this.name = this.constructor.name;
         this.code = errorCode;
         this.data = data;
     }
-}
-function validateRpcBasis(data1) {
-    return data1?.jsonrpc === "2.0" && (typeof data1?.id === "number" || typeof data1?.id === "string" || data1?.id === null);
-}
-function validateRpcSuccess(data1) {
-    return "result" in data1;
-}
-function validateRpcFailure(data1) {
-    return typeof data1?.error?.code === "number" && typeof data1?.error?.message === "string";
 }
 function validateResponse(data1) {
     if (validateRpcBasis(data1)) {
         if (validateRpcSuccess(data1)) return data1;
         else if (validateRpcFailure(data1)) {
-            throw new BadServerDataError(data1.error.message, data1.error.code, data1.error.data);
+            throw new BadServerDataError(data1.id, data1.error.message, data1.error.code, data1.error.data);
         }
     }
-    throw new BadServerDataError("Received data is no RPC response object.", -32003);
-}
-function send(resource, fetchInit) {
-    return fetch(resource instanceof URL ? resource.href : resource, fetchInit).then((res)=>{
-        if (!res.ok) {
-            return Promise.reject(new BadServerDataError(`${res.status} '${res.statusText}' received instead of 200-299 range.`, -32002));
-        } else if (res.status === 204 || res.headers.get("content-length") === "0") {
-            return undefined;
-        } else return res.json();
-    }).catch((err)=>Promise.reject(new BadServerDataError(err.message, -32001))
-    );
+    throw new BadServerDataError(null, "Received data is no RPC response object.", -32003);
 }
 function bytesToUuid(bytes) {
     const bits = [
@@ -60,14 +50,14 @@ function generate() {
     rnds[8] = rnds[8] & 63 | 128;
     return bytesToUuid(rnds);
 }
-function createRequest({ method , params , isNotification =false , id  }) {
+function createRequest({ method , params , isNotification =false , id: id1  }) {
     const rpcRequest = {
         jsonrpc: "2.0",
         method
     };
     params && (rpcRequest.params = params);
-    id = isNotification ? undefined : id !== undefined ? id : generate();
-    id !== undefined && (rpcRequest.id = id);
+    id1 = isNotification ? undefined : id1 !== undefined ? id1 : generate();
+    id1 !== undefined && (rpcRequest.id = id1);
     return rpcRequest;
 }
 function createRequestBatch(batchObj, isNotification = false) {
@@ -83,183 +73,6 @@ function createRequestBatch(batchObj, isNotification = false) {
             id: key
         })
     );
-}
-function processBatchArray(rpcResponseBatch) {
-    return rpcResponseBatch.map((rpcResponse)=>validateResponse(rpcResponse).result
-    );
-}
-function processBatchObject(rpcResponseBatch) {
-    return rpcResponseBatch.reduce((acc, rpcResponse)=>{
-        acc[rpcResponse.id] = validateResponse(rpcResponse).result;
-        return acc;
-    }, {
-    });
-}
-class Client {
-    constructor(resource, options = {
-    }){
-        const headers = options.headers === undefined ? new Headers() : options.headers instanceof Headers ? options.headers : new Headers(Object.entries(options.headers));
-        headers.set("Content-Type", "application/json");
-        this.fetchInit = {
-            ...options,
-            method: "POST",
-            headers
-        };
-        this.resource = resource;
-    }
-    async batch(batchObj, isNotification) {
-        const rpcResponseBatch = await send(this.resource, {
-            ...this.fetchInit,
-            body: JSON.stringify(createRequestBatch(batchObj, isNotification))
-        });
-        try {
-            if (rpcResponseBatch === undefined) {
-                return rpcResponseBatch;
-            } else if (Array.isArray(rpcResponseBatch)) {
-                return Array.isArray(batchObj) ? processBatchArray(rpcResponseBatch) : processBatchObject(rpcResponseBatch);
-            } else {
-                throw new BadServerDataError("The server returned an invalid batch response.", -32004);
-            }
-        } catch (err) {
-            return Promise.reject(err);
-        }
-    }
-    async call(method, params, { isNotification , jwt  } = {
-    }) {
-        const rpcRequestObj = createRequest({
-            method,
-            params,
-            isNotification
-        });
-        if (jwt && this.fetchInit.headers instanceof Headers) {
-            this.fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
-        }
-        const rpcResponsePromise = send(this.resource, {
-            ...this.fetchInit,
-            body: JSON.stringify(rpcRequestObj)
-        });
-        if (jwt && this.fetchInit.headers instanceof Headers) {
-            this.fetchInit.headers.delete("Authorization");
-        }
-        const rpcResponse = await rpcResponsePromise;
-        try {
-            return rpcResponse === undefined ? undefined : validateResponse(rpcResponse).result;
-        } catch (err) {
-            return Promise.reject(err);
-        }
-    }
-}
-function isObject(obj) {
-    return obj !== null && typeof obj === "object" && Array.isArray(obj) === false;
-}
-class Client1 {
-    constructor(socket1){
-        this.socket = socket1;
-        this.getPayloadData(socket1);
-    }
-    async getPayloadData(socket) {
-        this.payloadData = new Promise((resolve, reject)=>{
-            socket.onmessage = (event)=>{
-                resolve(event.data);
-            };
-            socket.onclose = ()=>resolve(null)
-            ;
-        });
-        await this.payloadData;
-        if (socket.readyState > 1) return this.payloadData;
-        return this.getPayloadData(socket);
-    }
-    async *iterateOverPayloadData(rpcRequest) {
-        while(this.socket.readyState < 2){
-            try {
-                const payloadData = await this.payloadData;
-                if (payloadData === null) {
-                    break;
-                }
-                const parsedData = JSON.parse(payloadData);
-                const rpcResponse = Array.isArray(parsedData) && parsedData.length > 0 ? parsedData.map(validateResponse) : validateResponse(parsedData);
-                if (Array.isArray(rpcResponse)) {
-                    continue;
-                } else {
-                    if (isObject(rpcResponse.result) && rpcResponse.result.id === rpcRequest.id) {
-                        if (rpcResponse.result.event === "subscribed" || rpcResponse.result.event === "emitted") {
-                            continue;
-                        }
-                        if (rpcResponse.result.event === "unsubscribed") {
-                            break;
-                        }
-                    }
-                    if (rpcResponse.id === rpcRequest.id) {
-                        yield rpcResponse.result;
-                    }
-                }
-            } catch (err) {
-                yield Promise.reject(err instanceof BadServerDataError ? err : new BadServerDataError(err.message, -32001));
-            }
-        }
-    }
-    call(method, params, isNotification = false) {
-        const rpcRequest = createRequest({
-            method,
-            params,
-            isNotification
-        });
-        this.socket.send(JSON.stringify(rpcRequest));
-        return {
-            generator: this.iterateOverPayloadData(rpcRequest),
-            send: (params)=>{
-                return this.socket.send(JSON.stringify({
-                    ...rpcRequest,
-                    params
-                }));
-            }
-        };
-    }
-    subscribe(method) {
-        const rpcRequest = createRequest({
-            method: "subscribe",
-            params: {
-                method
-            }
-        });
-        this.socket.send(JSON.stringify(rpcRequest));
-        return {
-            generator: this.iterateOverPayloadData(rpcRequest),
-            unsubscribe: (params)=>{
-                const rpcRequestUnsubscription = createRequest({
-                    method: "unsubscribe",
-                    params: {
-                        method,
-                        id: rpcRequest.id
-                    }
-                });
-                return this.socket.send(JSON.stringify(rpcRequestUnsubscription));
-            },
-            emit: (params)=>{
-                return this.socket.send(JSON.stringify({
-                    ...rpcRequest,
-                    method: "emit",
-                    params: {
-                        method,
-                        params,
-                        id: rpcRequest.id
-                    }
-                }));
-            },
-            emitBatch: (params)=>{
-                return this.socket.send(JSON.stringify(params.map((p)=>({
-                        ...rpcRequest,
-                        method: "emit",
-                        params: {
-                            method,
-                            params: p,
-                            id: rpcRequest.id
-                        }
-                    })
-                )));
-            }
-        };
-    }
 }
 const httpProxyHandler = {
     get (client, name) {
@@ -300,21 +113,223 @@ const wsProxyHandler = {
         }
     }
 };
-function listen(socket2) {
+function listen(socket) {
     return new Promise((resolve, reject)=>{
-        socket2.onopen = ()=>resolve(socket2)
+        socket.onopen = ()=>resolve(socket)
         ;
-        socket2.onerror = (err)=>reject(err)
+        socket.onerror = (err)=>reject(err)
         ;
     });
 }
-export function createRemote(resourceOrSocket, options1) {
-    if (resourceOrSocket instanceof WebSocket) {
-        return listen(resourceOrSocket).then((socket2)=>new Proxy(new Client1(socket2), wsProxyHandler)
-        ).catch((err)=>Promise.reject(new BadServerDataError("An error event occured on the WebSocket connection.", -32005, err.stack))
+function isObject(obj) {
+    return obj !== null && typeof obj === "object" && Array.isArray(obj) === false;
+}
+class Client {
+    constructor(socket1){
+        this.socket = socket1;
+        this.getPayloadData(socket1);
+    }
+    async getPayloadData(socket) {
+        this.payloadData = new Promise((resolve, reject)=>{
+            socket.onmessage = (event)=>{
+                resolve(event.data);
+            };
+            socket.onclose = ()=>resolve(null)
+            ;
+        });
+        await this.payloadData;
+        if (socket.readyState > 1) return this.payloadData;
+        return this.getPayloadData(socket);
+    }
+    async *iterateOverPayloadData(rpcRequest, { isOnetime  }) {
+        while(this.socket.readyState < 2){
+            try {
+                const payloadData = await this.payloadData;
+                if (payloadData === null) {
+                    break;
+                }
+                const parsedData = JSON.parse(payloadData);
+                const rpcResponse = Array.isArray(parsedData) && parsedData.length > 0 ? parsedData.map(validateResponse) : validateResponse(parsedData);
+                if (Array.isArray(rpcResponse)) {
+                    continue;
+                } else {
+                    if (!isOnetime && isObject(rpcResponse.result) && rpcResponse.result.id === rpcRequest.id) {
+                        if (rpcResponse.result.event === "subscribed" || rpcResponse.result.event === "emitted") {
+                            continue;
+                        }
+                        if (rpcResponse.result.event === "unsubscribed") {
+                            break;
+                        }
+                    }
+                    if (rpcResponse.id === rpcRequest.id) {
+                        yield rpcResponse.result;
+                        if (isOnetime) {
+                            break;
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.id === rpcRequest.id) {
+                    yield Promise.reject(err);
+                    if (isOnetime) {
+                        break;
+                    }
+                } else {
+                    yield Promise.reject(new BadServerDataError(null, err.message, -32001));
+                    break;
+                }
+            }
+        }
+    }
+    call(method, params, isNotification = false) {
+        const rpcRequest = createRequest({
+            method,
+            params,
+            isNotification
+        });
+        this.socket.send(JSON.stringify(rpcRequest));
+        if (isNotification) return Promise.resolve(undefined);
+        const generator = this.iterateOverPayloadData(rpcRequest, {
+            isOnetime: true
+        });
+        return generator.next().then((p)=>p.value
         );
-    } else {
-        return new Proxy(new Client(resourceOrSocket, options1), httpProxyHandler);
+    }
+    subscribe(method) {
+        const rpcRequest = createRequest({
+            method: "subscribe"
+        });
+        this.socket.send(JSON.stringify({
+            ...rpcRequest,
+            params: {
+                method,
+                id: rpcRequest.id
+            }
+        }));
+        return {
+            generator: this.iterateOverPayloadData(rpcRequest, {
+                isOnetime: false
+            }),
+            unsubscribe: (params)=>{
+                const rpcRequestUnsubscription = createRequest({
+                    method: "unsubscribe",
+                    params: {
+                        method,
+                        id: rpcRequest.id
+                    }
+                });
+                return this.socket.send(JSON.stringify(rpcRequestUnsubscription));
+            },
+            emit: (params)=>{
+                return this.socket.send(JSON.stringify({
+                    ...rpcRequest,
+                    method: "emit",
+                    params: {
+                        method,
+                        params,
+                        id: rpcRequest.id
+                    }
+                }));
+            },
+            emitBatch: (params)=>{
+                return this.socket.send(JSON.stringify(params.map((p)=>({
+                        ...rpcRequest,
+                        method: "emit",
+                        params: {
+                            method,
+                            params: p,
+                            id: rpcRequest.id
+                        }
+                    })
+                )));
+            }
+        };
     }
 }
+function send(resource, fetchInit) {
+    return fetch(resource instanceof URL ? resource.href : resource, fetchInit).then((res)=>{
+        if (!res.ok) {
+            return Promise.reject(new BadServerDataError(null, `${res.status} '${res.statusText}' received instead of 200-299 range.`, -32002));
+        } else if (res.status === 204 || res.headers.get("content-length") === "0") {
+            return undefined;
+        } else return res.json();
+    }).catch((err)=>Promise.reject(new BadServerDataError(null, err.message, -32001))
+    );
+}
+function processBatchArray(rpcResponseBatch) {
+    return rpcResponseBatch.map((rpcResponse)=>validateResponse(rpcResponse).result
+    );
+}
+function processBatchObject(rpcResponseBatch) {
+    return rpcResponseBatch.reduce((acc, rpcResponse)=>{
+        acc[rpcResponse.id] = validateResponse(rpcResponse).result;
+        return acc;
+    }, {
+    });
+}
+class Client1 {
+    constructor(resource, options = {
+    }){
+        const headers = options.headers === undefined ? new Headers() : options.headers instanceof Headers ? options.headers : new Headers(Object.entries(options.headers));
+        headers.set("Content-Type", "application/json");
+        this.fetchInit = {
+            ...options,
+            method: "POST",
+            headers
+        };
+        this.resource = resource;
+    }
+    async batch(batchObj, isNotification) {
+        const rpcResponseBatch = await send(this.resource, {
+            ...this.fetchInit,
+            body: JSON.stringify(createRequestBatch(batchObj, isNotification))
+        });
+        try {
+            if (rpcResponseBatch === undefined) {
+                return rpcResponseBatch;
+            } else if (Array.isArray(rpcResponseBatch)) {
+                return Array.isArray(batchObj) ? processBatchArray(rpcResponseBatch) : processBatchObject(rpcResponseBatch);
+            } else {
+                throw new BadServerDataError(null, "The server returned an invalid batch response.", -32004);
+            }
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+    async call(method, params, { isNotification , jwt  } = {
+    }) {
+        const rpcRequestObj = createRequest({
+            method,
+            params,
+            isNotification
+        });
+        if (jwt && this.fetchInit.headers instanceof Headers) {
+            this.fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
+        }
+        const rpcResponsePromise = send(this.resource, {
+            ...this.fetchInit,
+            body: JSON.stringify(rpcRequestObj)
+        });
+        if (jwt && this.fetchInit.headers instanceof Headers) {
+            this.fetchInit.headers.delete("Authorization");
+        }
+        const rpcResponse = await rpcResponsePromise;
+        try {
+            return rpcResponse === undefined ? undefined : validateResponse(rpcResponse).result;
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+}
+function createRemote(resourceOrSocket, options1) {
+    if (resourceOrSocket instanceof WebSocket) {
+        return listen(resourceOrSocket).then((socket2)=>new Proxy(new Client(socket2), wsProxyHandler)
+        ).catch((err)=>Promise.reject(new BadServerDataError(null, "An error event occured on the WebSocket connection.", -32005, err.stack))
+        );
+    } else {
+        return new Proxy(new Client1(resourceOrSocket, options1), httpProxyHandler);
+    }
+}
+const createRemote1 = createRemote;
+export { createRemote as createRemote };
 

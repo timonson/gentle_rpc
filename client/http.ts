@@ -21,6 +21,7 @@ function send(
       if (!res.ok) {
         return Promise.reject(
           new BadServerDataError(
+            null,
             `${res.status} '${res.statusText}' received instead of 200-299 range.`,
             -32002,
           ),
@@ -33,7 +34,7 @@ function send(
       } else return res.json();
     })
     .catch((err) =>
-      Promise.reject(new BadServerDataError(err.message, -32001))
+      Promise.reject(new BadServerDataError(null, err.message, -32001))
     );
 }
 
@@ -102,6 +103,7 @@ export class Client {
           : processBatchObject(rpcResponseBatch);
       } else {
         throw new BadServerDataError(
+          null,
           "The server returned an invalid batch response.",
           -32004,
         );

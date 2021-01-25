@@ -36,7 +36,7 @@ export async function respond(
           const methodsAndIdsStore = new Map();
           if (options.disableInternalMethods) {
             return handleWs(
-              { socket, methods: { ...methods }, options, methodsAndIdsStore },
+              { socket, methods, options, methodsAndIdsStore },
             );
           } else {
             return handleWs(

@@ -164,7 +164,6 @@ method.
 
 ```typescript
 // First client
-
 export async function run(iter: AsyncGenerator<unknown>) {
   try {
     for await (let x of iter) {

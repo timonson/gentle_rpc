@@ -10,9 +10,9 @@ import type {
 function validateRpcBasis(data: any): data is RpcResponseBasis {
   return (
     data?.jsonrpc === "2.0" &&
-    (typeof data?.id === "number" ||
-      typeof data?.id === "string" ||
-      data?.id === null)
+    (typeof data.id === "number" ||
+      typeof data.id === "string" ||
+      data.id === null)
   );
 }
 function validateRpcSuccess(data: any): data is RpcSuccess {
@@ -21,11 +21,11 @@ function validateRpcSuccess(data: any): data is RpcSuccess {
 function validateRpcFailure(data: any): data is RpcFailure {
   return (
     typeof data?.error?.code === "number" &&
-    typeof data?.error?.message === "string"
+    typeof data.error.message === "string"
   );
 }
 
-export function validateResponse(data: JsonValue): RpcSuccess {
+export function validateResponse(data: unknown): RpcSuccess {
   if (validateRpcBasis(data)) {
     if (validateRpcSuccess(data)) return data;
     else if (validateRpcFailure(data)) {

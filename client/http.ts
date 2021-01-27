@@ -95,9 +95,11 @@ export class Client {
       ),
     });
     try {
-      if (rpcResponseBatch === undefined) {
+      if (rpcResponseBatch === undefined && isNotification) {
         return rpcResponseBatch;
-      } else if (Array.isArray(rpcResponseBatch)) {
+      } else if (
+        Array.isArray(rpcResponseBatch) && rpcResponseBatch.length > 0
+      ) {
         return Array.isArray(batchObj)
           ? processBatchArray(rpcResponseBatch)
           : processBatchObject(rpcResponseBatch);
@@ -137,7 +139,7 @@ export class Client {
     }
     const rpcResponse = await rpcResponsePromise;
     try {
-      return rpcResponse === undefined
+      return rpcResponse === undefined && isNotification
         ? undefined
         : validateResponse(rpcResponse).result;
     } catch (err) {

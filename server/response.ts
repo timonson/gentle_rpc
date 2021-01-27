@@ -16,6 +16,7 @@ export type RespondOptions = {
   publicErrorStack?: boolean;
   headers?: [string, string][];
   disableInternalMethods?: boolean;
+  proto?: "ws" | "wss" | "http" | "https";
 };
 
 export async function respond(
@@ -23,8 +24,9 @@ export async function respond(
   methods: ServerMethods,
   options: RespondOptions = {},
 ) {
-  switch (req.headers.get("Upgrade")) {
-    case "websocket":
+  switch (options.proto) {
+    case "ws":
+    case "wss":
       const { conn, r: bufReader, w: bufWriter, headers } = req;
       return acceptWebSocket({
         conn,

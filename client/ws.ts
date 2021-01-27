@@ -44,12 +44,23 @@ export class Client {
           break;
         }
         const parsedData = JSON.parse(payloadData);
-        const rpcResponse = Array.isArray(parsedData) && parsedData.length > 0
-          ? parsedData.map(validateResponse)
-          : validateResponse(parsedData);
-        if (Array.isArray(rpcResponse)) {
-          continue;
+
+        // for the method emitBatch
+        if (Array.isArray(parsedData) && !isOnetime && parsedData.length > 0) {
+          const invalid = parsedData.map(validateResponse).find((res) =>
+            !isObject(res.result) || res.result.event !== "emitted"
+          );
+          if (invalid) {
+            throw new BadServerDataError(
+              invalid.id ? invalid.id : null,
+              "The server returned an invalid batch response.",
+              -32004,
+            );
+          } else {
+            continue;
+          }
         } else {
+          const rpcResponse = validateResponse(parsedData);
           if (
             !isOnetime &&
             isObject(rpcResponse.result) &&
@@ -73,16 +84,12 @@ export class Client {
           }
         }
       } catch (err) {
-        if (err.id === rpcRequest.id) {
+        if (typeof err.id !== "string") console.error(err);
+        else if (err.id === rpcRequest.id) {
           yield Promise.reject(err);
           if (isOnetime) {
             break;
           }
-        } else {
-          yield Promise.reject(
-            new BadServerDataError(null, err.message, -32001),
-          );
-          break;
         }
       }
     }

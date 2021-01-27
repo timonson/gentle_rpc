@@ -18,5 +18,10 @@ const rpcMethods = {
 };
 
 for await (const req of s) {
-  const result = respond(req, rpcMethods, { publicErrorStack: true });
+  if (req.headers.get("Upgrade")) {
+    const result = respond(req, rpcMethods, {
+      publicErrorStack: true,
+      proto: "ws",
+    });
+  } else req.respond({ status: 405 });
 }

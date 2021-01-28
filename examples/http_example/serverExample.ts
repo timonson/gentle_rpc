@@ -12,5 +12,5 @@ const rpcMethods = {
 };
 
 for await (const req of s) {
-  const result = await respond(req, rpcMethods);
+  respond(req, rpcMethods);
 }

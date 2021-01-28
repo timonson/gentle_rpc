@@ -6,7 +6,9 @@ import type { RpcRequest } from "../../mod.ts";
 const s = serve("0.0.0.0:8000");
 console.log("listening on 0.0.0.0:8000");
 const rpcMethods = {
-  sayHello: (w: [string]) => `Hello ${w}`,
+  sayHello: (w: [string]) => {
+    return `Hello ${w}`;
+  },
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
     `${c} ${a * b}`,
   animalsMakeNoise: (noise: [string]) => {
@@ -19,7 +21,7 @@ const rpcMethods = {
 
 for await (const req of s) {
   if (req.headers.get("Upgrade")) {
-    const result = respond(req, rpcMethods, {
+    respond(req, rpcMethods, {
       publicErrorStack: true,
       proto: "ws",
     });

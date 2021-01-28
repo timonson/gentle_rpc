@@ -84,8 +84,7 @@ export class Client {
           }
         }
       } catch (err) {
-        if (typeof err.id !== "string") console.error(err);
-        else if (err.id === rpcRequest.id) {
+        if (err.id === rpcRequest.id) {
           yield Promise.reject(err);
           if (isOnetime) {
             break;

@@ -29,7 +29,10 @@ const rpcMethods = {
 }
 
 for await (const req of s) {
+  // HTTP:
   await respond(req, rpcMethods)
+  // WebSockets:
+  await respond(req, rpcMethods, { proto: "ws" })
 }
 ```
 

@@ -45,16 +45,17 @@ function partialEmitListener(
 export async function handleWs(
   { socket, methods, options, methodsAndIdsStore }: Input,
 ) {
-  console.log("socket connected!");
+  // console.log("socket connected!");
 
-  const emitListener = partialEmitListener({
-    socket,
-    methods,
-    options,
-    methodsAndIdsStore,
-  });
+  let emitListenerOrNull = null;
   if (!options.disableInternalMethods) {
-    addEventListener("emit", emitListener as EventListener);
+    emitListenerOrNull = partialEmitListener({
+      socket,
+      methods,
+      options,
+      methodsAndIdsStore,
+    });
+    addEventListener("emit", emitListenerOrNull as EventListener);
   }
 
   try {
@@ -83,19 +84,19 @@ export async function handleWs(
         }
       } else if (isWebSocketPingEvent(ev)) {
         const [, body] = ev;
-        console.log("ws:Ping", body);
+        // console.log("ws:Ping", body);
       } else if (isWebSocketCloseEvent(ev)) {
         const { code, reason } = ev;
-        console.log("ws:Close", code, reason);
+        // console.log("ws:Close", code, reason);
         if (!options.disableInternalMethods) {
-          removeEventListener("emit", emitListener as EventListener);
+          removeEventListener("emit", emitListenerOrNull as EventListener);
         }
       }
     }
   } catch (err) {
     console.error(`failed to receive frame: ${err}`);
-    if (!options.disableInternalMethods) {
-      removeEventListener("emit", emitListener as EventListener);
+    if (!options.disableInternalMethods && emitListenerOrNull) {
+      removeEventListener("emit", emitListenerOrNull as EventListener);
     }
     if (!socket.isClosed) {
       await socket.close(1000).catch((err) => console.error(err));

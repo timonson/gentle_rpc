@@ -1,6 +1,6 @@
 import { cleanBatch, createResponseObject } from "./creation.ts";
 import { validateRequest, validateRpcRequestObject } from "./validation.ts";
-import { isWebSocketCloseEvent, isWebSocketPingEvent } from "./deps.ts";
+import { isWebSocketCloseEvent } from "./deps.ts";
 
 import type { CreationInput } from "./creation.ts";
 import type { WebSocket } from "./deps.ts";

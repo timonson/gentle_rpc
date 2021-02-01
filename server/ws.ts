@@ -82,11 +82,8 @@ export async function handleWs(
         if (responseObjectOrBatchOrNull) {
           await socket.send(JSON.stringify(responseObjectOrBatchOrNull));
         }
-      } else if (isWebSocketPingEvent(ev)) {
-        const [, body] = ev;
-        // console.log("ws:Ping", body);
       } else if (isWebSocketCloseEvent(ev)) {
-        const { code, reason } = ev;
+        // const { code, reason } = ev;
         // console.log("ws:Close", code, reason);
         if (!options.disableInternalMethods) {
           removeEventListener("emit", emitListenerOrNull as EventListener);

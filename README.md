@@ -81,7 +81,7 @@ const notification = await remote.sayHello.notify(["World"])
 
 ##### auth
 
-This method will set the `Authorization` header to `\`Bearer ${jwt}\``.
+This method will set the `Authorization` header to `` `Bearer ${jwt}` ``.
 
 ```typescript
 const greeting = await remote.sayHello.auth(jwt)(["World"])

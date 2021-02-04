@@ -79,6 +79,15 @@ const notification = await remote.sayHello.notify(["World"])
 // undefined
 ```
 
+##### auth
+
+This method will set the `Authorization` header to `\`Bearer ${jwt}\``.
+
+```typescript
+const greeting = await remote.sayHello.auth(jwt)(["World"])
+// Hello World
+```
+
 ##### batch
 
 ```typescript
@@ -89,15 +98,6 @@ const noise1 = await remote.animalsMakeNoise.batch([
   ["fiiiiire"],
 ])
 // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
-```
-
-##### auth
-
-This method will set the `Authorization` header to `Bearer ${jwt}`.
-
-```typescript
-const greeting = await remote.sayHello.auth(jwt)(["World"])
-// Hello World
 ```
 
 ##### batch with different methods

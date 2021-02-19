@@ -67,7 +67,7 @@ export async function respond(
         methods,
         options,
       );
-      req.respond(
+      await req.respond(
         response === undefined
           ? {
             status: 204,

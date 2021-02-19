@@ -7,7 +7,8 @@ export class BadServerDataError extends Error {
   data?: unknown;
   constructor(id: RpcId, message: string, errorCode: number, data?: unknown) {
     super(message);
-    this.id = id, this.name = this.constructor.name;
+    this.id = id;
+    this.name = this.constructor.name;
     this.code = errorCode;
     this.data = data;
   }

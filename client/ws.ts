@@ -11,6 +11,7 @@ function isObject(obj: unknown): obj is Record<string, unknown> {
 }
 
 export class Client {
+  private textDecoder?: TextDecoder;
   private payloadData!: Promise<any>;
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
@@ -23,14 +24,26 @@ export class Client {
 
   private async getPayloadData(socket: WebSocket): Promise<any> {
     this.payloadData = new Promise((resolve, reject) => {
-      socket.onmessage = (event: MessageEvent) => {
-        resolve(event.data);
+      socket.onmessage = async (event: MessageEvent) => {
+        let msg: string;
+        if (event.data instanceof Blob) {
+          msg = this.getTextDecoder().decode(await event.data.arrayBuffer());
+        } else if (event.data instanceof ArrayBuffer) {
+          msg = this.getTextDecoder().decode(event.data);
+        } else {
+          msg = event.data;
+        }
+        resolve(msg);
       };
       socket.onclose = () => resolve(null);
     });
     await this.payloadData;
     if (socket.readyState > 1) return this.payloadData;
     return this.getPayloadData(socket);
+  }
+
+  private getTextDecoder(): TextDecoder {
+    return this.textDecoder || (this.textDecoder = new TextDecoder());
   }
 
   private async *iterateOverPayloadData(

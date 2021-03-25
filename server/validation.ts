@@ -8,21 +8,18 @@ import type {
 } from "../json_rpc_types.ts";
 
 export type ValidationSuccess = {
+  isError: false;
   id: RpcId;
   method: RpcMethod;
   params: JsonArray | JsonObject | undefined;
   result?: JsonValue;
-  isError: false;
 };
 export type ValidationFailure = {
+  isError: true;
   id: RpcId;
   message: string;
   code: number;
   data?: Error["stack"];
-  isError: true;
-  method?: undefined;
-  params?: undefined;
-  result?: undefined;
 };
 export type ValidationObject = ValidationSuccess | ValidationFailure;
 

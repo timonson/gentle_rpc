@@ -12,7 +12,7 @@ function isObject(obj: unknown): obj is Record<string, unknown> {
 
 export class Client {
   private textDecoder?: TextDecoder;
-  private payloadData!: Promise<any>;
+  private payloadData!: Promise<string | null>;
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
   constructor(
@@ -22,7 +22,7 @@ export class Client {
     this.getPayloadData(socket);
   }
 
-  private async getPayloadData(socket: WebSocket): Promise<any> {
+  private async getPayloadData(socket: WebSocket): Promise<void> {
     this.payloadData = new Promise((resolve, reject) => {
       socket.onmessage = async (event: MessageEvent) => {
         let msg: string;
@@ -38,8 +38,9 @@ export class Client {
       socket.onclose = () => resolve(null);
     });
     await this.payloadData;
-    if (socket.readyState > 1) return this.payloadData;
-    return this.getPayloadData(socket);
+    if (socket.readyState < 2) {
+      this.getPayloadData(socket);
+    }
   }
 
   private getTextDecoder(): TextDecoder {

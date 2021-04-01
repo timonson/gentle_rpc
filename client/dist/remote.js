@@ -1,52 +1,3 @@
-class BadServerDataError extends Error {
-    constructor(id, message, errorCode, data){
-        super(message);
-        this.id = id;
-        this.name = this.constructor.name;
-        this.code = errorCode;
-        this.data = data;
-    }
-}
-function send(resource, fetchInit) {
-    return fetch(resource instanceof URL ? resource.href : resource, fetchInit).then((res)=>{
-        if (!res.ok) {
-            return Promise.reject(new BadServerDataError(null, `${res.status} '${res.statusText}' received instead of 200-299 range.`, -32002));
-        } else if (res.status === 204 || res.headers.get("content-length") === "0") {
-            return undefined;
-        } else return res.json();
-    }).catch((err)=>Promise.reject(new BadServerDataError(null, err.message, -32001))
-    );
-}
-function validateRpcBasis(data1) {
-    return data1?.jsonrpc === "2.0" && (typeof data1.id === "number" || typeof data1.id === "string" || data1.id === null);
-}
-function validateRpcSuccess(data1) {
-    return "result" in data1;
-}
-function validateRpcFailure(data1) {
-    return typeof data1?.error?.code === "number" && typeof data1.error.message === "string";
-}
-function validateResponse(data1) {
-    if (validateRpcBasis(data1)) {
-        if (validateRpcSuccess(data1)) return data1;
-        else if (validateRpcFailure(data1)) {
-            throw new BadServerDataError(data1.id, data1.error.message, data1.error.code, data1.error.data);
-        }
-    }
-    throw new BadServerDataError(null, "Received data is no RPC response object.", -32003);
-}
-const validateResponse1 = validateResponse;
-function processBatchArray(rpcResponseBatch) {
-    return rpcResponseBatch.map((rpcResponse)=>validateResponse(rpcResponse).result
-    );
-}
-function processBatchObject(rpcResponseBatch) {
-    return rpcResponseBatch.reduce((acc, rpcResponse)=>{
-        acc[rpcResponse.id] = validateResponse1(rpcResponse).result;
-        return acc;
-    }, {
-    });
-}
 function bytesToUuid(bytes) {
     const bits = [
         ...bytes
@@ -66,23 +17,20 @@ function bytesToUuid(bytes) {
         ...bits.slice(10, 16), 
     ].join("");
 }
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function generate() {
     const rnds = crypto.getRandomValues(new Uint8Array(16));
     rnds[6] = rnds[6] & 15 | 64;
     rnds[8] = rnds[8] & 63 | 128;
     return bytesToUuid(rnds);
 }
-const generate1 = generate;
-const generateV4Uuid = generate1;
-function createRequest({ method , params , isNotification =false , id: id1  }) {
+function createRequest({ method , params , isNotification =false , id  }) {
     const rpcRequest = {
         jsonrpc: "2.0",
         method
     };
     params && (rpcRequest.params = params);
-    id1 = isNotification ? undefined : id1 !== undefined ? id1 : generateV4Uuid();
-    id1 !== undefined && (rpcRequest.id = id1);
+    id = isNotification ? undefined : id !== undefined ? id : generate();
+    id !== undefined && (rpcRequest.id = id);
     return rpcRequest;
 }
 function createRequestBatch(batchObj, isNotification = false) {
@@ -98,6 +46,54 @@ function createRequestBatch(batchObj, isNotification = false) {
             id: key
         })
     );
+}
+class BadServerDataError extends Error {
+    constructor(id, message, errorCode, data){
+        super(message);
+        this.id = id;
+        this.name = this.constructor.name;
+        this.code = errorCode;
+        this.data = data;
+    }
+}
+function validateRpcBasis(data1) {
+    return data1?.jsonrpc === "2.0" && (typeof data1.id === "number" || typeof data1.id === "string" || data1.id === null);
+}
+function validateRpcSuccess(data1) {
+    return "result" in data1;
+}
+function validateRpcFailure(data1) {
+    return typeof data1?.error?.code === "number" && typeof data1.error.message === "string";
+}
+function validateResponse(data1) {
+    if (validateRpcBasis(data1)) {
+        if (validateRpcSuccess(data1)) return data1;
+        else if (validateRpcFailure(data1)) {
+            throw new BadServerDataError(data1.id, data1.error.message, data1.error.code, data1.error.data);
+        }
+    }
+    throw new BadServerDataError(null, "Received data is no RPC response object.", -32003);
+}
+function send(resource, fetchInit) {
+    return fetch(resource instanceof URL ? resource.href : resource, fetchInit).then((res)=>{
+        if (!res.ok) {
+            return Promise.reject(new BadServerDataError(null, `${res.status} '${res.statusText}' received instead of 200-299 range.`, -32002));
+        } else if (res.status === 204 || res.headers.get("content-length") === "0") {
+            return undefined;
+        } else return res.json();
+    }).catch((err)=>Promise.reject(new BadServerDataError(null, err.message, -32001))
+    );
+}
+function processBatchArray(rpcResponseBatch) {
+    return rpcResponseBatch.map((rpcResponse)=>validateResponse(rpcResponse).result
+    );
+}
+function processBatchObject(rpcResponseBatch) {
+    return rpcResponseBatch.reduce((acc, rpcResponse)=>{
+        acc[rpcResponse.id] = validateResponse(rpcResponse).result;
+        return acc;
+    }, {
+    });
 }
 class Client {
     constructor(resource, options = {
@@ -163,15 +159,27 @@ class Client1 {
     }
     async getPayloadData(socket) {
         this.payloadData = new Promise((resolve, reject)=>{
-            socket.onmessage = (event)=>{
-                resolve(event.data);
+            socket.onmessage = async (event)=>{
+                let msg;
+                if (event.data instanceof Blob) {
+                    msg = this.getTextDecoder().decode(await event.data.arrayBuffer());
+                } else if (event.data instanceof ArrayBuffer) {
+                    msg = this.getTextDecoder().decode(event.data);
+                } else {
+                    msg = event.data;
+                }
+                resolve(msg);
             };
             socket.onclose = ()=>resolve(null)
             ;
         });
         await this.payloadData;
-        if (socket.readyState > 1) return this.payloadData;
-        return this.getPayloadData(socket);
+        if (socket.readyState < 2) {
+            this.getPayloadData(socket);
+        }
+    }
+    getTextDecoder() {
+        return this.textDecoder || (this.textDecoder = new TextDecoder());
     }
     async *iterateOverPayloadData(rpcRequest, { isOnetime  }) {
         while(this.socket.readyState < 2){

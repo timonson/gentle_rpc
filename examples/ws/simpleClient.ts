@@ -11,4 +11,4 @@ const noise = await remote.animalsMakeNoise(["wuufff"]).then(console.log).catch(
   console.log,
 );
 
-// remote.socket.close();
+remote.socket.close();

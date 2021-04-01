@@ -13,5 +13,5 @@ const rpcMethods = {
 console.log("listening on 0.0.0.0:8000");
 
 for await (const req of server) {
-  respond(req, rpcMethods);
+  respond(rpcMethods, req);
 }

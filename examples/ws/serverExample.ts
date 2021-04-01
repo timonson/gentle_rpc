@@ -14,7 +14,7 @@ console.log("listening on 0.0.0.0:8000");
 
 for await (const req of server) {
   if (req.headers.get("Upgrade")) {
-    respond(req, rpcMethods, {
+    respond(rpcMethods, req, {
       publicErrorStack: true,
       proto: "ws",
     });

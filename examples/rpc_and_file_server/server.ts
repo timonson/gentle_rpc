@@ -13,6 +13,6 @@ console.log(
 const app = new PressF();
 
 app.get("*", respondWithFile(new URL(root, import.meta.url).pathname));
-app.post("*", (req) => respondRpc(req, rpcMethods));
+app.post("*", (req) => respondRpc(rpcMethods, req));
 
 await app.listen(port);

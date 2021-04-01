@@ -20,8 +20,8 @@ export type RespondOptions = {
 };
 
 export async function respond(
-  req: ServerRequest,
   methods: ServerMethods,
+  req: ServerRequest,
   options: RespondOptions = {},
 ) {
   switch (options.proto) {

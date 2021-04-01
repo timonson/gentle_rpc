@@ -44,7 +44,7 @@ Deno.test("rpc call with positional parameters", async function (): Promise<
   const sentToClient = '{"jsonrpc": "2.0", "result": 19, "id": 1}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -55,7 +55,7 @@ Deno.test("rpc call with named parameters", async function (): Promise<void> {
   const sentToClient = '{"jsonrpc": "2.0", "result": 19, "id": 3}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -64,10 +64,10 @@ Deno.test("rpc call as a notification", async function (): Promise<void> {
   let sentToServer =
     '{"jsonrpc": "2.0", "method": "update", "params": [1,2,3,4,5]}';
 
-  assertEquals(await respond(createReq(sentToServer), methods), undefined);
+  assertEquals(await respond(methods, createReq(sentToServer)), undefined);
 
   sentToServer = '{"jsonrpc": "2.0", "method": "foobar"}';
-  assertEquals(await respond(createReq(sentToServer), methods), undefined);
+  assertEquals(await respond(methods, createReq(sentToServer)), undefined);
 });
 
 Deno.test("rpc call of non-existent method", async function (): Promise<void> {
@@ -76,7 +76,7 @@ Deno.test("rpc call of non-existent method", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "1"}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -88,7 +88,7 @@ Deno.test("rpc call with invalid JSON", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -101,7 +101,7 @@ Deno.test("rpc call with invalid Request object", async function (): Promise<
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -113,7 +113,7 @@ Deno.test("rpc call Batch, invalid JSON", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -124,7 +124,7 @@ Deno.test("rpc call with an empty Array", async function (): Promise<void> {
     '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -137,7 +137,7 @@ Deno.test(
       '[ {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ]';
 
     assertEquals(
-      await respond(createReq(sentToServer), methods),
+      await respond(methods, createReq(sentToServer)),
       removeWhiteSpace(sentToClient),
     );
   },
@@ -149,7 +149,7 @@ Deno.test("rpc call with invalid Batch", async function (): Promise<void> {
     '[ {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null} ]';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -161,7 +161,7 @@ Deno.test("rpc call Batch", async function (): Promise<void> {
     '[ {"jsonrpc": "2.0", "result": 7, "id": "1"}, {"jsonrpc": "2.0", "result": 19, "id": "2"}, {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}, {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "5"}, {"jsonrpc": "2.0", "result": ["hello", 5], "id": "9"} ]';
 
   assertEquals(
-    await respond(createReq(sentToServer), methods),
+    await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
   );
 });
@@ -172,7 +172,7 @@ Deno.test("rpc call Batch (all notifications)", async function (): Promise<
   const sentToServer =
     '[ {"jsonrpc": "2.0", "method": "notify_sum", "params": [1,2,4]}, {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]} ]';
 
-  assertEquals(await respond(createReq(sentToServer), methods), undefined);
+  assertEquals(await respond(methods, createReq(sentToServer)), undefined);
 });
 
 Deno.test(
@@ -184,14 +184,14 @@ Deno.test(
       '{"jsonrpc": "2.0", "result": "DB query result: Joe", "id": "a"}';
 
     assertEquals(
-      await respond(createReq(sentToServer), methods, {
+      await respond(methods, createReq(sentToServer), {
         argument: { s: "DB query result:" },
         allMethods: true,
       }),
       removeWhiteSpace(sentToClient),
     );
     assertEquals(
-      await respond(createReq(sentToServer), methods, {
+      await respond(methods, createReq(sentToServer), {
         argument: { s: "DB query result:" },
         methods: ["queryDatabase"],
       }),
@@ -206,13 +206,13 @@ Deno.test("set publicErrorStack to true", async function (): Promise<void> {
 
   assertEquals(
     typeof JSON.parse(
-      (await respond(createReq(sentToServer), methods)) as string,
+      (await respond(methods, createReq(sentToServer))) as string,
     ).error.data,
     "undefined",
   );
   assertEquals(
     typeof JSON.parse(
-      (await respond(createReq(sentToServer), methods, {
+      (await respond(methods, createReq(sentToServer), {
         publicErrorStack: true,
       })) as string,
     ).error.data,

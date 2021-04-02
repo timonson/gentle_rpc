@@ -1,5 +1,4 @@
-import { respond as respondRpc } from "../../mod.ts";
-import { rpcMethods } from "./rpcMethods.ts";
+import { respondRpc } from "./rpc.ts";
 import { PressF, respondWithFile } from "../example_deps.ts";
 
 const proto = "http";
@@ -13,6 +12,6 @@ console.log(
 const app = new PressF();
 
 app.get("*", respondWithFile(new URL(root, import.meta.url).pathname));
-app.post("*", (req) => respondRpc(rpcMethods, req));
+app.post("*", respondRpc);
 
 await app.listen(port);

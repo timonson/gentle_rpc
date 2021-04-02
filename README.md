@@ -14,7 +14,7 @@ Takes a `req`, `methods` and `options`. You can set options for an additional
 server argument or public error stacks.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.88.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.92.0/http/server.ts"
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts"
 
 const server = serve("0.0.0.0:8000")

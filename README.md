@@ -10,8 +10,8 @@ https://nest.land/package/gentle_rpc.
 
 ### respond
 
-Takes a `req`, `methods` and `options`. You can set options for an additional
-server argument or public error stacks.
+Takes the arguments `methods`, `req` and `options`. You can set options for an
+additional server argument or public error stacks.
 
 ```typescript
 import { serve } from "https://deno.land/std@0.92.0/http/server.ts"

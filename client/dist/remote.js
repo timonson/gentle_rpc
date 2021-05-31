@@ -48,6 +48,10 @@ function createRequestBatch(batchObj, isNotification = false) {
     );
 }
 class BadServerDataError extends Error {
+    id;
+    name;
+    code;
+    data;
     constructor(id, message, errorCode, data){
         super(message);
         this.id = id;
@@ -96,6 +100,8 @@ function processBatchObject(rpcResponseBatch) {
     });
 }
 class Client {
+    resource;
+    fetchInit;
     constructor(resource, options = {
     }){
         const headers = options.headers === undefined ? new Headers() : options.headers instanceof Headers ? options.headers : new Headers(Object.entries(options.headers));
@@ -153,6 +159,9 @@ function isObject(obj) {
     return obj !== null && typeof obj === "object" && Array.isArray(obj) === false;
 }
 class Client1 {
+    textDecoder;
+    payloadData;
+    socket;
     constructor(socket1){
         this.socket = socket1;
         this.getPayloadData(socket1);

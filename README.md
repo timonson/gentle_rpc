@@ -3,9 +3,6 @@
 JSON-RPC 2.0 library with WebSockets and HTTP support for
 [deno](https://github.com/denoland/deno) and the browser.
 
-This library is accessible through the https://deno.land/x/ service or through
-https://nest.land/package/gentle_rpc.
-
 ## Server
 
 ### respond

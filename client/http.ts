@@ -2,12 +2,57 @@ import { createRequest, createRequestBatch } from "./creation.ts";
 import { validateResponse } from "./validation.ts";
 import { BadServerDataError } from "./error.ts";
 
-import type { Resource } from "./http_remote.ts";
 import type { JsonArray, JsonValue, RpcRequest } from "../json_rpc_types.ts";
 import type { BatchArrayInput, BatchObjectInput } from "./creation.ts";
 
+export type Resource = string | URL | Request;
 type BatchArrayOutput = JsonArray;
 type BatchObjectOutput = Record<string, JsonValue>;
+type HttpProxyFunction = {
+  (
+    params?: RpcRequest["params"],
+  ): ReturnType<Client["call"]>;
+  notify: (
+    params?: RpcRequest["params"],
+  ) => ReturnType<Client["call"]>;
+  auth: (
+    jwt: string,
+  ) => (params?: RpcRequest["params"]) => ReturnType<Client["call"]>;
+  batch: (
+    params: RpcRequest["params"][],
+    isNotification?: boolean,
+  ) => Promise<JsonArray | undefined>;
+};
+export type HttpProxy = {
+  [method: string]: HttpProxyFunction;
+} & { batch: Client["batch"] };
+
+const httpProxyHandler = {
+  get(client: Client, name: RpcRequest["method"]) {
+    if (client[name as keyof Client] !== undefined) {
+      return client[name as keyof Client];
+    } else {
+      const proxyFunction: HttpProxyFunction = (args?) =>
+        client.call(name, args);
+      proxyFunction.notify = (args?) =>
+        client.call(name, args, { isNotification: true });
+      proxyFunction.auth = (jwt) => (args?) => client.call(name, args, { jwt });
+      proxyFunction.batch = (args, isNotification = false) =>
+        client.batch([name, ...args], isNotification);
+      return proxyFunction;
+    }
+  },
+};
+
+export function createRemote(
+  resource: Resource,
+  options?: RequestInit,
+): HttpProxy {
+  return new Proxy<HttpProxy>(
+    new Client(resource, options),
+    httpProxyHandler,
+  );
+}
 
 function send(
   resource: Resource,

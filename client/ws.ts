@@ -4,6 +4,65 @@ import { BadServerDataError } from "./error.ts";
 
 import type { JsonValue, RpcRequest } from "../json_rpc_types.ts";
 
+type WsProxyFunction = {
+  (
+    params?: RpcRequest["params"],
+  ): ReturnType<Client["call"]>;
+  notify: (
+    params?: RpcRequest["params"],
+  ) => ReturnType<Client["call"]>;
+  subscribe: () => ReturnType<Client["subscribe"]>;
+};
+export type WsProxy =
+  & {
+    [method: string]: WsProxyFunction;
+  }
+  & { socket: WebSocket };
+
+const wsProxyHandler = {
+  get(client: Client, name: RpcRequest["method"]) {
+    if (
+      client[name as keyof Client] !== undefined || name === "then"
+    ) {
+      return client[name as keyof Client];
+    } else {
+      const proxyFunction: WsProxyFunction = (args?) => client.call(name, args);
+      proxyFunction.notify = (args?) => client.call(name, args, true);
+      proxyFunction.subscribe = () => client.subscribe(name);
+      return proxyFunction;
+    }
+  },
+};
+
+function listen(socket: WebSocket): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    socket.onopen = () => resolve(socket);
+    socket.onerror = (err) => reject(err);
+  });
+}
+
+export function createRemote(
+  socket: WebSocket,
+): Promise<WsProxy> {
+  return listen(socket)
+    .then((socket) =>
+      new Proxy<WsProxy>(
+        new Client(socket),
+        wsProxyHandler,
+      )
+    )
+    .catch((err) =>
+      Promise.reject(
+        new BadServerDataError(
+          null,
+          "An error event occured on the WebSocket connection.",
+          -32005,
+          err.stack,
+        ),
+      )
+    );
+}
+
 function isObject(obj: unknown): obj is Record<string, unknown> {
   return (
     obj !== null && typeof obj === "object" && Array.isArray(obj) === false

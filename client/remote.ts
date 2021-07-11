@@ -1,8 +1,8 @@
-import { createRemote as createHttpRemote } from "./http_remote.ts";
-import { createRemote as createWsRemote } from "./ws_remote.ts";
+import { createRemote as createHttpRemote } from "./http.ts";
+import { createRemote as createWsRemote } from "./ws.ts";
 
-import type { HttpProxy, Resource } from "./http_remote.ts";
-import type { WsProxy } from "./ws_remote.ts";
+import type { HttpProxy, Resource } from "./http.ts";
+import type { WsProxy } from "./ws.ts";
 
 export function createRemote(
   resource: Resource,

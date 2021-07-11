@@ -8,7 +8,7 @@
   <body>
     <h1>Hello World</h1>
     <script type="module">
-      import { createRemote } from "./http_remote.js"
+      import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v2.8/client/dist/http.js"
       const remote = createRemote("http://127.0.0.1:8000")
       const greeting = await remote.sayHello(["World"])
       const namedParams = await remote.callNamedParameters({

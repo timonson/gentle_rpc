@@ -11,25 +11,25 @@ Takes the arguments `methods`, `req` and `options`. You can set options for an
 additional server argument or public error stacks.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.97.0/http/server.ts"
-import { respond } from "https://deno.land/x/gentle_rpc/mod.ts"
+import { serve } from "https://deno.land/std@0.97.0/http/server.ts";
+import { respond } from "https://deno.land/x/gentle_rpc/mod.ts";
 
-const server = serve("0.0.0.0:8000")
+const server = serve("0.0.0.0:8000");
 const rpcMethods = {
   sayHello: (w: [string]) => `Hello ${w}`,
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
     `${c} ${a * b}`,
   animalsMakeNoise: (noise: string[]) =>
     noise.map((el) => el.toUpperCase()).join(" "),
-}
+};
 
-console.log("listening on 0.0.0.0:8000")
+console.log("listening on 0.0.0.0:8000");
 
 for await (const req of server) {
   // HTTP:
-  await respond(rpcMethods, req)
+  await respond(rpcMethods, req);
   // WebSockets:
-  await respond(rpcMethods, req, { proto: "ws" })
+  await respond(rpcMethods, req, { proto: "ws" });
 }
 ```
 
@@ -41,13 +41,15 @@ Takes a `resource` for HTTP or a `WebSocket` for WebSockets and returns a
 TypeScript `Proxy` or `Promise<Proxy>` which we will call `remote` from now on.
 
 ```typescript
-import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts"
+import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts";
+// Or import directly into the browser with:
+import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v2.8/client/dist/remote.js";
 
 // HTTP:
-const remote = createRemote("http://0.0.0.0:8000")
+const remote = createRemote("http://0.0.0.0:8000");
 
 // WebSocket:
-const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"))
+const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000"));
 ```
 
 ### HTTP
@@ -58,21 +60,21 @@ All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
 object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
-const greeting = await remote.sayHello(["World"])
+const greeting = await remote.sayHello(["World"]);
 // Hello World
 
 const namedParams = await remote.callNamedParameters({
   a: 5,
   b: 10,
   c: "result:",
-})
+});
 // result: 50
 ```
 
 ##### notification
 
 ```typescript
-const notification = await remote.sayHello.notify(["World"])
+const notification = await remote.sayHello.notify(["World"]);
 // undefined
 ```
 
@@ -81,7 +83,7 @@ const notification = await remote.sayHello.notify(["World"])
 This method will set the `Authorization` header to `` `Bearer ${jwt}` ``.
 
 ```typescript
-const greeting = await remote.sayHello.auth(jwt)(["World"])
+const greeting = await remote.sayHello.auth(jwt)(["World"]);
 // Hello World
 ```
 
@@ -93,7 +95,7 @@ const noise1 = await remote.animalsMakeNoise.batch([
   ["wuuuufu", "wuuuufu"],
   ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
   ["fiiiiire"],
-])
+]);
 // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
 ```
 
@@ -108,7 +110,7 @@ await remote.batch({
   dog: ["animalsMakeNoise", ["wuuuufu"]],
   donkey: ["sayHello"],
   dragon: ["animalsMakeNoise", ["fiiiiire", "fiiiiire"]],
-})
+});
 // { cat: "Hello miaaow", dog: "WUUUUFU", donkey: "Hello ", dragon: "FIIIIIRE FIIIIIRE" }
 ```
 
@@ -125,7 +127,7 @@ await remote.batch([
   ["wuuuufu", "wuuuufu"],
   ["iaaaiaia", "iaaaiaia", "iaaaiaia"],
   ["fiiiiire"],
-])
+]);
 // [ "MIAAOW", "WUUUUFU WUUUUFU", "IAAAIAIA IAAAIAIA IAAAIAIA", "FIIIIIRE" ]
 ```
 
@@ -140,16 +142,16 @@ All `remote` methods take an `Array<JsonValue>` or `Record<string, JsonValue>`
 object and return `Promise<JsonValue | undefined>`.
 
 ```typescript
-const noise = await remote.animalsMakeNoise(["wuufff"])
-console.log(noise)
+const noise = await remote.animalsMakeNoise(["wuufff"]);
+console.log(noise);
 
-remote.socket.close()
+remote.socket.close();
 ```
 
 ##### notification
 
 ```typescript
-const notification = await remote.animalsMakeNoise.notify(["wuufff"])
+const notification = await remote.animalsMakeNoise.notify(["wuufff"]);
 ```
 
 ##### messaging between multiple clients
@@ -167,16 +169,16 @@ method.
 export async function run(iter: AsyncGenerator<unknown>) {
   try {
     for await (let x of iter) {
-      console.log(x)
+      console.log(x);
     }
   } catch (err) {
-    console.log(err.message, err.code)
+    console.log(err.message, err.code);
   }
 }
 
-const greeting = remote.sayHello.subscribe()
-run(greeting.generator)
-greeting.emit(["first"])
+const greeting = remote.sayHello.subscribe();
+run(greeting.generator);
+greeting.emit(["first"]);
 // Hello first
 // Hello second
 // Hello third
@@ -184,15 +186,15 @@ greeting.emit(["first"])
 
 ```typescript
 // Second client
-const greeting = remote.sayHello.subscribe()
-run(greeting.generator)
-greeting.emitBatch([["second"], ["third"]])
+const greeting = remote.sayHello.subscribe();
+run(greeting.generator);
+greeting.emitBatch([["second"], ["third"]]);
 // Hello first
 // Hello second
 // Hello third
 
 // You can optionally unsubscribe:
-greeting.unsubscribe()
+greeting.unsubscribe();
 ```
 
 ## Examples and Tests
@@ -204,5 +206,5 @@ more detailed examples.
 
 ## Contribution
 
-Every kind of contribution to this project is highly appreciated.  
+Every kind of contribution to this project is highly appreciated.\
 Please run `deno fmt` on the changed files before making a pull request.

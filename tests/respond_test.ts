@@ -185,17 +185,31 @@ Deno.test(
 
     assertEquals(
       await respond(methods, createReq(sentToServer), {
-        argument: { s: "DB query result:" },
-        allMethods: true,
+        additionalArguments: [{
+          arg: { s: "DB query result:" },
+          allMethods: true,
+        }],
       }),
       removeWhiteSpace(sentToClient),
     );
     assertEquals(
       await respond(methods, createReq(sentToServer), {
-        argument: { s: "DB query result:" },
-        methods: ["queryDatabase"],
+        additionalArguments: [{
+          arg: { s: "DB query result:" },
+          methods: ["queryDatabase"],
+        }],
       }),
       removeWhiteSpace(sentToClient),
+    );
+    assertEquals(
+      await respond(methods, createReq(sentToServer), {
+        additionalArguments: [{
+          arg: { s: "DB query result:" },
+        }],
+      }),
+      removeWhiteSpace(
+        '{"jsonrpc": "2.0", "result": "undefined Joe", "id": "a"}',
+      ),
     );
   },
 );

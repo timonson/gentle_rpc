@@ -13,5 +13,12 @@ const rpcMethods = {
 console.log("listening on 0.0.0.0:8000");
 
 for await (const req of server) {
-  respond(rpcMethods, req);
+  respond(rpcMethods, req, {
+    headers: new Headers({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS,POST,PUT",
+      "Access-Control-Allow-Headers":
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    }),
+  });
 }

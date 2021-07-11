@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title></title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <h1>Hello World</h1>
+    <script type="module">
+      import { createRemote } from "./http_remote.js"
+      const remote = createRemote("http://127.0.0.1:8000")
+      const greeting = await remote.sayHello(["World"])
+      const namedParams = await remote.callNamedParameters({
+        a: 5,
+        b: 10,
+        c: "result:",
+      })
+      console.log(greeting)
+      console.log(namedParams)
+    </script>
+  </body>
+</html>

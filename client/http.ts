@@ -2,7 +2,7 @@ import { createRequest, createRequestBatch } from "./creation.ts";
 import { validateResponse } from "./validation.ts";
 import { BadServerDataError } from "./error.ts";
 
-import type { Resource } from "./remote.ts";
+import type { Resource } from "./http_remote.ts";
 import type { JsonArray, JsonValue, RpcRequest } from "../json_rpc_types.ts";
 import type { BatchArrayInput, BatchObjectInput } from "./creation.ts";
 
@@ -57,7 +57,7 @@ export function processBatchObject(
 
 export class Client {
   private resource: Resource;
-  private fetchInit: RequestInit;
+  private fetchInit: Omit<RequestInit, "headers"> & { headers: Headers };
   [key: string]: any // necessary for es6 proxy
   constructor(
     resource: Resource,
@@ -67,7 +67,7 @@ export class Client {
       ? new Headers()
       : options.headers instanceof Headers
       ? options.headers
-      : new Headers(Object.entries(options.headers));
+      : new Headers(options.headers);
     headers.set("Content-Type", "application/json");
     this.fetchInit = {
       ...options,
@@ -77,24 +77,23 @@ export class Client {
     this.resource = resource;
   }
 
-  async batch(
+  batch(
     batchObj: BatchArrayInput,
     isNotification?: boolean,
   ): Promise<BatchArrayOutput | undefined>;
-  async batch(
+  batch(
     batchObj: BatchObjectInput,
   ): Promise<BatchObjectOutput | undefined>;
-  async batch(
+  batch(
     batchObj: BatchArrayInput | BatchObjectInput,
     isNotification?: boolean,
   ): Promise<BatchArrayOutput | BatchObjectOutput | undefined> {
-    const rpcResponseBatch = await send(this.resource, {
+    return send(this.resource, {
       ...this.fetchInit,
       body: JSON.stringify(
         createRequestBatch(batchObj, isNotification),
       ),
-    });
-    try {
+    }).then((rpcResponseBatch) => {
       if (rpcResponseBatch === undefined && isNotification) {
         return rpcResponseBatch;
       } else if (
@@ -110,12 +109,10 @@ export class Client {
           -32004,
         );
       }
-    } catch (err) {
-      return Promise.reject(err);
-    }
+    });
   }
 
-  async call(
+  call(
     method: RpcRequest["method"],
     params: RpcRequest["params"],
     { isNotification, jwt }: { isNotification?: boolean; jwt?: string } = {},
@@ -125,25 +122,21 @@ export class Client {
       params,
       isNotification,
     });
-    if (jwt && this.fetchInit.headers instanceof Headers) {
-      this.fetchInit.headers.set("Authorization", `Bearer ${jwt}`);
-    }
-    const rpcResponsePromise = send(this.resource, {
+    return send(this.resource, {
       ...this.fetchInit,
+      headers: jwt
+        ? new Headers([
+          ...this.fetchInit.headers.entries(),
+          ["Authorization", `Bearer ${jwt}`],
+        ])
+        : this.fetchInit.headers,
       body: JSON.stringify(
         rpcRequestObj,
       ),
-    });
-    if (jwt && this.fetchInit.headers instanceof Headers) {
-      this.fetchInit.headers.delete("Authorization");
-    }
-    const rpcResponse = await rpcResponsePromise;
-    try {
-      return rpcResponse === undefined && isNotification
+    }).then((rpcResponse) =>
+      rpcResponse === undefined && isNotification
         ? undefined
-        : validateResponse(rpcResponse).result;
-    } catch (err) {
-      return Promise.reject(err);
-    }
+        : validateResponse(rpcResponse).result
+    );
   }
 }

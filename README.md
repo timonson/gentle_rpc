@@ -8,7 +8,7 @@ JSON-RPC 2.0 library with WebSockets and HTTP support for
 ### respond
 
 Takes the arguments `methods`, `req` and `options`. You can set options for an
-additional server argument or public error stacks.
+additional server argument, protocol, headers and public error stacks.
 
 ```typescript
 import { serve } from "https://deno.land/std@0.97.0/http/server.ts";

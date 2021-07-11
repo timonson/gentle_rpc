@@ -4,23 +4,28 @@ import { isWebSocketCloseEvent } from "./deps.ts";
 
 import type { CreationInput } from "./creation.ts";
 import type { WebSocket } from "./deps.ts";
+import type { MethodsAndIdsStore } from "./ws_internal_methods.ts";
+import type { RespondOptions } from "./response.ts";
 
-export type MethodsAndIdsStore = Map<string, Set<string>>;
-type Input = Omit<CreationInput, "validationObject"> & { socket: WebSocket } & {
-  methodsAndIdsStore: MethodsAndIdsStore;
-};
+type Input = Omit<CreationInput, "validationObject"> & { socket: WebSocket };
 type Emission = {
   method: string;
   params: unknown;
 };
 
 function partialEmitListener(
-  { socket, methods, options, methodsAndIdsStore }: Input,
+  { socket, methods, options }: Input,
 ) {
   return async function emitListener(event: CustomEvent) {
     const { method, params } = event.detail as Emission;
-    if (methodsAndIdsStore.has(method)) {
-      const ids = [...methodsAndIdsStore.get(method)!.values()];
+    const methodsAndIdsStore = options
+      .additionalArguments.find((item) => item.arg.methodsAndIdsStore)?.arg
+      .methodsAndIdsStore as MethodsAndIdsStore;
+    if (methodsAndIdsStore?.has(method)) {
+      const ids = [
+        methodsAndIdsStore.get(method)!
+          .values(),
+      ];
       return ids.map(async (id) => {
         const response = await createResponseObject({
           validationObject: validateRpcRequestObject(
@@ -43,7 +48,7 @@ function partialEmitListener(
 }
 
 export async function handleWs(
-  { socket, methods, options, methodsAndIdsStore }: Input,
+  { socket, methods, options }: Input,
 ) {
   // console.log("socket connected!");
 
@@ -53,7 +58,6 @@ export async function handleWs(
       socket,
       methods,
       options,
-      methodsAndIdsStore,
     });
     addEventListener("emit", emitListenerOrNull as EventListener);
   }

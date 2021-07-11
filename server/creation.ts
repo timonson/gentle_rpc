@@ -10,7 +10,7 @@ import type { RespondOptions, ServerMethods } from "./response.ts";
 export type CreationInput = {
   validationObject: ValidationObject;
   methods: ServerMethods;
-  options: RespondOptions;
+  options: Required<RespondOptions>;
 };
 type RpcResponseOrNull = RpcResponse | null;
 type BatchResponseOrNull = RpcBatchResponse | null;
@@ -39,18 +39,19 @@ async function executeMethods(
 
 function addArgument(
   obj: ValidationObject,
-  { argument, methods = [], allMethods }: RespondOptions,
+  { additionalArguments }: Required<RespondOptions>,
 ): ValidationObject {
-  if (
-    obj.isError ||
-    argument === undefined ||
-    (!methods.includes(obj.method) && !allMethods)
-  ) {
+  if (obj.isError || additionalArguments.length === 0) {
     return obj;
   }
+
+  const args = additionalArguments.filter((item) =>
+    item.allMethods || item.methods?.includes(obj.method)
+  ).reduce((acc, item) => ({ ...acc, ...item.arg }), {});
+
   obj.params = {
     ...obj.params,
-    ...argument,
+    ...args,
   };
 
   return obj;

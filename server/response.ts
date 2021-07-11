@@ -10,35 +10,57 @@ export type ServerMethods = {
   [method: string]: (...arg: any) => JsonValue | Promise<JsonValue>;
 };
 export type RespondOptions = {
-  argument?: Record<string, any>;
-  methods?: (keyof ServerMethods)[];
-  allMethods?: boolean;
+  // Add headers to the default header '{"content-type" : "application/json"}'
+  headers?: Headers;
+  // include or don't include server side error messages in response
   publicErrorStack?: boolean;
-  headers?: [string, string][];
+  // only important for 'ws'
   disableInternalMethods?: boolean;
-  proto?: "ws" | "wss" | "http" | "https";
+  // defaults to http
+  proto?: "ws" | "http";
+  additionalArguments?: {
+    // e.g. `arg: {db : new Db()}`, where 'db' will be the named parameter.
+    arg: Record<string, any>;
+    methods?: (keyof ServerMethods)[];
+    allMethods?: boolean;
+  }[];
 };
 
 export async function respond(
   methods: ServerMethods,
   req: ServerRequest,
-  options: RespondOptions = {},
+  {
+    headers = new Headers(),
+    publicErrorStack = false,
+    disableInternalMethods = false,
+    proto = "http",
+    additionalArguments = [],
+  }: RespondOptions = {},
 ) {
-  switch (options.proto) {
+  switch (proto) {
     case "ws":
-    case "wss":
-      const { conn, r: bufReader, w: bufWriter, headers } = req;
+      const { conn, r: bufReader, w: bufWriter, headers: reqHeaders } = req;
       return acceptWebSocket({
         conn,
         bufReader,
         bufWriter,
-        headers,
+        headers: reqHeaders,
       })
         .then((socket: WebSocket) => {
           const methodsAndIdsStore = new Map();
-          if (options.disableInternalMethods) {
+          if (disableInternalMethods) {
             return handleWs(
-              { socket, methods, options, methodsAndIdsStore },
+              {
+                socket,
+                methods,
+                options: {
+                  headers,
+                  publicErrorStack,
+                  disableInternalMethods,
+                  additionalArguments,
+                  proto,
+                },
+              },
             );
           } else {
             return handleWs(
@@ -46,11 +68,15 @@ export async function respond(
                 socket,
                 methods: { ...methods, ...internalMethods },
                 options: {
-                  ...options,
-                  argument: { methodsAndIdsStore },
-                  methods: ["subscribe", "unsubscribe"],
+                  headers,
+                  publicErrorStack,
+                  disableInternalMethods,
+                  additionalArguments: [...additionalArguments, {
+                    arg: methodsAndIdsStore,
+                    methods: ["subscribe", "unsubscribe"],
+                  }],
+                  proto,
                 },
-                methodsAndIdsStore,
               },
             );
           }
@@ -61,30 +87,38 @@ export async function respond(
           return err;
         });
       break;
-    default:
+    case "http":
       const response = await handleHttpRequest(
         new TextDecoder().decode(await Deno.readAll(req.body)),
         methods,
-        options,
+        {
+          headers,
+          publicErrorStack,
+          disableInternalMethods,
+          additionalArguments,
+          proto,
+        },
       );
       await req.respond(
         response === undefined
           ? {
             status: 204,
-            headers: new Headers(
-              options.headers ? options.headers : [],
-            ),
+            headers: headers,
           }
           : {
             body: new TextEncoder().encode(response),
             headers: new Headers(
-              options.headers
-                ? [["content-type", "application/json"], ...options.headers]
-                : [["content-type", "application/json"]],
+              [...headers.entries(), [
+                "content-type",
+                "application/json",
+              ]],
             ),
             status: 200,
           },
       );
       return response;
+      break;
+    default:
+      throw new TypeError(`The protocol '${proto}' is not supported.`);
   }
 }

@@ -1,7 +1,8 @@
 import { isRpcParams } from "./validation.ts";
 
 import type { ServerMethods } from "./response.ts";
-import type { MethodsAndIdsStore } from "./ws.ts";
+
+export type MethodsAndIdsStore = Map<string, Set<string>>;
 
 type SubscribeInput = {
   id: unknown;

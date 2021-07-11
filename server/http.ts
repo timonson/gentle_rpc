@@ -6,7 +6,7 @@ import type { RespondOptions, ServerMethods } from "./response.ts";
 export async function handleHttpRequest(
   message: string,
   methods: ServerMethods,
-  options: RespondOptions,
+  options: Required<RespondOptions>,
 ): Promise<string | undefined> {
   const validationObject = validateRequest(message, methods);
   const responseObjectOrBatchOrNull = Array.isArray(validationObject)

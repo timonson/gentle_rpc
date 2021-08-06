@@ -8,7 +8,7 @@ import {
 
 import { respond } from "../server/response.ts";
 
-import { CustomError } from "../server/custom-errors.ts";
+import { CustomError } from "../server/custom_error.ts";
 
 import type { ServerRequest } from "./test_deps.ts";
 

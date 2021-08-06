@@ -6,7 +6,7 @@ import type {
 } from "../json_rpc_types.ts";
 import type { ValidationObject } from "./validation.ts";
 import type { RespondOptions, ServerMethods } from "./response.ts";
-import { CustomError } from "./custom-errors.ts";
+import { CustomError } from "./custom_error.ts";
 
 export type CreationInput = {
   validationObject: ValidationObject;

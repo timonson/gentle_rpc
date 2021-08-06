@@ -6,6 +6,7 @@ import type {
 } from "../json_rpc_types.ts";
 import type { ValidationObject } from "./validation.ts";
 import type { RespondOptions, ServerMethods } from "./response.ts";
+import { CustomError } from "./custom-errors.ts";
 
 export type CreationInput = {
   validationObject: ValidationObject;
@@ -27,6 +28,15 @@ async function executeMethods(
       result: await methods[obj.method](obj.params),
     };
   } catch (err) {
+    if (err instanceof CustomError) {
+      return {
+        code: err.errorCode,
+        message: err.errorMessage,
+        id: obj.id,
+        data: err.errorData,
+        isError: true,
+      };
+    }
     return {
       code: -32603,
       message: "Internal error",

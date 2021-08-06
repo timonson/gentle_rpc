@@ -8,6 +8,8 @@ import {
 
 import { respond } from "../server/response.ts";
 
+import { CustomError } from "../server/custom-errors.ts";
+
 import type { ServerRequest } from "./test_deps.ts";
 
 function createReq(str: string) {
@@ -33,6 +35,11 @@ const methods = {
   get_data: () => ["hello", 5],
   throwError: () => {
     throw new Error("my error");
+  },
+  throwCustomError: () => {
+    throw new CustomError(-32000, "my custom error", {
+      "details": "error details",
+    });
   },
 };
 
@@ -231,5 +238,19 @@ Deno.test("set publicErrorStack to true", async function (): Promise<void> {
       })) as string,
     ).error.data,
     "string",
+  );
+});
+
+Deno.test("rpc call with a custom error", async function (): Promise<
+  void
+> {
+  const sentToServer =
+    '{"jsonrpc": "2.0", "method": "throwCustomError", "params": [], "id": 1}';
+  const sentToClient =
+    '{"jsonrpc":"2.0","error":{"code":-32000,"message":"my custom error","data":{"details":"error details"}},"id":1}';
+
+  assertEquals(
+    await respond(methods, createReq(sentToServer)),
+    removeWhiteSpace(sentToClient),
   );
 });

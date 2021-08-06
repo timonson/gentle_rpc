@@ -33,6 +33,26 @@ for await (const req of server) {
 }
 ```
 
+#### custom errors
+
+Throw a `CustomError` to send a server-defined error response.
+
+```typescript
+import { respond, CustomError } from "https://deno.land/x/gentle_rpc/mod.ts";
+
+//..
+await respond({
+  throwError: () => {
+    throw new CustomError(
+      -32000, // the JSON-RPC error code. Note, must be -32000 to -32099
+      'An error occurred', // the error message, a short sentence
+      {details: '...'} // optional additional details, can be an object, primitive, etc (any)
+    )
+  }
+}, req);
+//..
+```
+
 ## Client
 
 #### createRemote

@@ -2,7 +2,7 @@ export { createRemote } from "./client/remote.ts";
 
 export { respond } from "./server/response.ts";
 
-export { CustomError } from "./server/custom-errors.ts";
+export { CustomError } from "./server/custom_error.ts";
 
 export { createRpcResponseObject } from "./server/creation.ts";
 

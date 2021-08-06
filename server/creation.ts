@@ -30,10 +30,10 @@ async function executeMethods(
   } catch (err) {
     if (err instanceof CustomError) {
       return {
-        code: err.errorCode,
-        message: err.errorMessage,
+        code: err.code,
+        message: err.message,
         id: obj.id,
-        data: err.errorData,
+        data: err.data,
         isError: true,
       };
     }

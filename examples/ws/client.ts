@@ -10,4 +10,8 @@ const noise = await remote.call("callNamedParameters", {
 // The result is: 200
 console.log(noise);
 
+const notification = await remote.call("animalsMakeNoise", ["wuufff"], true);
+// undefined
+console.log(notification);
+
 remote.socket.close();

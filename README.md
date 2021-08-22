@@ -1,6 +1,6 @@
 # gentle_rpc
 
-JSON-RPC 2.0 library with HTTP and WebSockets support for
+JSON-RPC 2.0 library (server and client) with HTTP and WebSockets support for
 [deno](https://github.com/denoland/deno) and the browser.
 
 ## Server
@@ -10,7 +10,7 @@ JSON-RPC 2.0 library with HTTP and WebSockets support for
 Takes `Methods`, `ServerRequest` and `Options`.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.97.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.105.0/http/server.ts"
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts"
 
 const server = serve("0.0.0.0:8000")
@@ -65,7 +65,7 @@ Takes a `Resource` for HTTP or a `WebSocket` for WebSockets and returns
 ```typescript
 import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts"
 // Or import directly into the browser with:
-import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v2.8/client/dist/remote.js"
+import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v3.0/client/dist/remote.js"
 
 // HTTP:
 const remote = createRemote("http://0.0.0.0:8000")
@@ -106,8 +106,8 @@ const notification = await remote.call("sayHello", ["World"], {
 
 ##### jwt
 
-Adding a jwt to the optional property `jwt` will set the `Authorization` header
-to `` `Bearer ${jwt}` ``.
+Adding the option `{jwt: string}` will set the `Authorization` header to
+`` `Bearer ${jwt}` ``.
 
 ```typescript
 const user = await remote.call("login", undefined, { jwt })
@@ -163,16 +163,14 @@ const noise = await remote.call("callNamedParameters", {
 })
 // The result is: 200
 
-const notification = await remote.call("sayHello", ["World"], true)
-// undefined
-
 remote.socket.close()
 ```
 
 ##### notification
 
 ```typescript
-const notification = await remote.animalsMakeNoise.notify(["wuufff"])
+const notification = await remote.call("animalsMakeNoise", ["wuufff"], true)
+// undefined
 ```
 
 ##### messaging between multiple clients

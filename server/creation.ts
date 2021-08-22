@@ -7,7 +7,7 @@ import type {
   RpcSuccess,
 } from "../json_rpc_types.ts";
 import type { ValidationObject } from "./validation.ts";
-import type { Options, Methods } from "./response.ts";
+import type { Methods, Options } from "./response.ts";
 
 export type CreationInput = {
   validationObject: ValidationObject;

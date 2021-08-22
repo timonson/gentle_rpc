@@ -2,7 +2,7 @@ import { cleanBatch, createResponseObject } from "./creation.ts";
 import { validateRequest } from "./validation.ts";
 import { verifyJwt } from "./auth.ts";
 
-import type { Options, Methods } from "./response.ts";
+import type { Methods, Options } from "./response.ts";
 import type { ServerRequest } from "./deps.ts";
 import type { ValidationObject } from "./validation.ts";
 

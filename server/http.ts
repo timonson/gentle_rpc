@@ -1,26 +1,33 @@
 import { cleanBatch, createResponseObject } from "./creation.ts";
 import { validateRequest } from "./validation.ts";
+import { verifyJwt } from "./auth.ts";
 
-import type { RespondOptions, ServerMethods } from "./response.ts";
+import type { Options, Methods } from "./response.ts";
+import type { ServerRequest } from "./deps.ts";
+import type { ValidationObject } from "./validation.ts";
 
 export async function handleHttpRequest(
-  message: string,
-  methods: ServerMethods,
-  options: Required<RespondOptions>,
+  req: ServerRequest,
+  methods: Methods,
+  options: Required<Options>,
 ): Promise<string | undefined> {
-  const validationObject = validateRequest(message, methods);
-  const responseObjectOrBatchOrNull = Array.isArray(validationObject)
+  const message = new TextDecoder().decode(await Deno.readAll(req.body));
+  const validationObjectOrBatch = validateRequest(message, methods);
+  const responseObjectOrBatchOrNull = Array.isArray(validationObjectOrBatch)
     ? await cleanBatch(
-      validationObject.map((rpc) =>
-        createResponseObject({ validationObject: rpc, methods, options })
+      validationObjectOrBatch.map(async (rpc) =>
+        createResponseObject(
+          await verifyJwt({ validationObject: rpc, methods, options }),
+        )
       ),
     )
-    : await createResponseObject({
-      validationObject,
-      methods,
-      options,
-    });
-
+    : await createResponseObject(
+      await verifyJwt({
+        validationObject: validationObjectOrBatch,
+        methods,
+        options,
+      }),
+    );
   return responseObjectOrBatchOrNull === null
     ? undefined
     : JSON.stringify(responseObjectOrBatchOrNull);

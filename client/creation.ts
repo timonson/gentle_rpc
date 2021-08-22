@@ -1,9 +1,9 @@
-import { generate as generateV4Uuid } from "./deps.ts";
-
 import type { RpcBatchRequest, RpcRequest } from "../json_rpc_types.ts";
+import type { BatchArrayInput, BatchObjectInput } from "./http.ts";
 
-export type BatchArrayInput = [string, ...RpcRequest["params"][]];
-export type BatchObjectInput = Record<string, [string, RpcRequest["params"]?]>;
+function generateId() {
+  return window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+}
 
 export function createRequest({
   method,
@@ -21,7 +21,7 @@ export function createRequest({
     method,
   };
   params && (rpcRequest.params = params);
-  id = isNotification ? undefined : id !== undefined ? id : generateV4Uuid();
+  id = isNotification ? undefined : id !== undefined ? id : generateId();
   id !== undefined && (rpcRequest.id = id);
   return rpcRequest;
 }
@@ -31,15 +31,11 @@ export function createRequestBatch(
   isNotification = false,
 ): RpcBatchRequest {
   return Array.isArray(batchObj)
-    ? batchObj
-      .map((el, _, array) =>
-        createRequest({
-          method: array[0] as string,
-          params: el as RpcRequest["params"],
-          isNotification,
-        })
+    ? batchObj.map((el) =>
+      Object.entries(el).map(([method, arr]) =>
+        arr.map((params) => createRequest({ method, params, isNotification }))
       )
-      .slice(1)
+    ).flat(2)
     : Object.entries(batchObj).map(([key, value]) =>
       createRequest({
         method: value[0],

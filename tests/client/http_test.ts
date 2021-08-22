@@ -1,7 +1,7 @@
-import { assertEquals, assertNotEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertNotEquals, assertThrows } from "../test_deps.ts";
 
-import { processBatchArray, processBatchObject } from "../client/http.ts";
-import { BadServerDataError } from "../client/error.ts";
+import { processBatchArray, processBatchObject } from "../../client/http.ts";
+import { BadServerDataError } from "../../client/error.ts";
 
 Deno.test("process batch request with array", function (): void {
   assertEquals(

@@ -1,3 +1,5 @@
+import { CustomError } from "./custom_error.ts";
+
 import type {
   RpcBatchResponse,
   RpcError,
@@ -5,21 +7,20 @@ import type {
   RpcSuccess,
 } from "../json_rpc_types.ts";
 import type { ValidationObject } from "./validation.ts";
-import type { RespondOptions, ServerMethods } from "./response.ts";
-import { CustomError } from "./custom_error.ts";
+import type { Options, Methods } from "./response.ts";
 
 export type CreationInput = {
   validationObject: ValidationObject;
-  methods: ServerMethods;
-  options: Required<RespondOptions>;
+  methods: Methods;
+  options: Required<Options>;
 };
 type RpcResponseOrNull = RpcResponse | null;
 type BatchResponseOrNull = RpcBatchResponse | null;
 
 async function executeMethods(
   obj: ValidationObject,
-  methods: ServerMethods,
-  publicErrorStack?: RespondOptions["publicErrorStack"],
+  methods: Methods,
+  publicErrorStack?: Options["publicErrorStack"],
 ): Promise<ValidationObject> {
   if (obj.isError) return obj;
   try {
@@ -49,21 +50,31 @@ async function executeMethods(
 
 function addArgument(
   obj: ValidationObject,
-  { additionalArguments }: Required<RespondOptions>,
+  { additionalArguments, publicErrorStack }: Required<Options>,
 ): ValidationObject {
   if (obj.isError || additionalArguments.length === 0) {
     return obj;
   }
-
+  if (Array.isArray(obj.params)) {
+    return {
+      code: -32010,
+      message: "Server error",
+      id: obj.id,
+      data: publicErrorStack
+        ? new Error(
+          "By-position ordered parameters are not allowed for this method.",
+        ).stack
+        : undefined,
+      isError: true,
+    };
+  }
   const args = additionalArguments.filter((item) =>
     item.allMethods || item.methods?.includes(obj.method)
-  ).reduce((acc, item) => ({ ...acc, ...item.arg }), {});
-
+  ).reduce((acc, item) => ({ ...acc, ...item.args }), {});
   obj.params = {
     ...obj.params,
     ...args,
   };
-
   return obj;
 }
 

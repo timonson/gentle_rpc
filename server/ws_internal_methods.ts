@@ -1,7 +1,6 @@
 import { isRpcParams } from "./validation.ts";
 
-import type { ServerMethods } from "./response.ts";
-
+import type { Methods } from "./response.ts";
 export type MethodsAndIdsStore = Map<string, Set<string>>;
 
 type SubscribeInput = {
@@ -48,14 +47,10 @@ function emit(
     dispatchEvent(
       new CustomEvent("emit", { detail: { method, params } }),
     );
-    return {
-      event: "emitted",
-      id,
-      method,
-    };
+    return { event: "emitted", id, method };
   } else {
     throw new Error("Wrong arguments.");
   }
 }
 
-export const internalMethods: ServerMethods = { subscribe, unsubscribe, emit };
+export const internalMethods: Methods = { subscribe, unsubscribe, emit };

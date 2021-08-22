@@ -3,56 +3,12 @@ import { validateResponse } from "./validation.ts";
 import { BadServerDataError } from "./error.ts";
 
 import type { JsonArray, JsonValue, RpcRequest } from "../json_rpc_types.ts";
-import type { BatchArrayInput, BatchObjectInput } from "./creation.ts";
 
 export type Resource = string | URL | Request;
-type BatchArrayOutput = JsonArray;
-type BatchObjectOutput = Record<string, JsonValue>;
-type HttpProxyFunction = {
-  (
-    params?: RpcRequest["params"],
-  ): ReturnType<Client["call"]>;
-  notify: (
-    params?: RpcRequest["params"],
-  ) => ReturnType<Client["call"]>;
-  auth: (
-    jwt: string,
-  ) => (params?: RpcRequest["params"]) => ReturnType<Client["call"]>;
-  batch: (
-    params: RpcRequest["params"][],
-    isNotification?: boolean,
-  ) => Promise<JsonArray | undefined>;
-};
-export type HttpProxy = {
-  [method: string]: HttpProxyFunction;
-} & { batch: Client["batch"] };
-
-const httpProxyHandler = {
-  get(client: Client, name: RpcRequest["method"]) {
-    if (client[name as keyof Client] !== undefined) {
-      return client[name as keyof Client];
-    } else {
-      const proxyFunction: HttpProxyFunction = (args?) =>
-        client.call(name, args);
-      proxyFunction.notify = (args?) =>
-        client.call(name, args, { isNotification: true });
-      proxyFunction.auth = (jwt) => (args?) => client.call(name, args, { jwt });
-      proxyFunction.batch = (args, isNotification = false) =>
-        client.batch([name, ...args], isNotification);
-      return proxyFunction;
-    }
-  },
-};
-
-export function createRemote(
-  resource: Resource,
-  options?: RequestInit,
-): HttpProxy {
-  return new Proxy<HttpProxy>(
-    new Client(resource, options),
-    httpProxyHandler,
-  );
-}
+export type BatchArrayInput = Record<string, RpcRequest["params"][]>[];
+export type BatchObjectInput = Record<string, [string, RpcRequest["params"]?]>;
+export type BatchArrayOutput = JsonArray;
+export type BatchObjectOutput = Record<string, JsonValue>;
 
 function send(
   resource: Resource,
@@ -65,22 +21,16 @@ function send(
     .then((res: Response) => {
       if (!res.ok) {
         return Promise.reject(
-          new BadServerDataError(
-            null,
+          new RangeError(
             `${res.status} '${res.statusText}' received instead of 200-299 range.`,
-            -32002,
           ),
         );
       } else if (
-        res.status === 204 ||
-        res.headers.get("content-length") === "0"
+        res.status === 204 || res.headers.get("content-length") === "0"
       ) {
         return undefined;
       } else return res.json();
-    })
-    .catch((err) =>
-      Promise.reject(new BadServerDataError(null, err.message, -32001))
-    );
+    });
 }
 
 export function processBatchArray(
@@ -94,13 +44,25 @@ export function processBatchArray(
 export function processBatchObject(
   rpcResponseBatch: JsonArray,
 ): BatchObjectOutput {
-  return rpcResponseBatch.reduce<BatchObjectOutput>((acc, rpcResponse: any) => {
-    acc[rpcResponse.id] = validateResponse(rpcResponse).result;
-    return acc;
-  }, {});
+  return rpcResponseBatch.reduce<BatchObjectOutput>(
+    (acc, rpcResponse: unknown) => {
+      const rpcSuccess = validateResponse(rpcResponse);
+      if (rpcSuccess.id !== null) {
+        acc[rpcSuccess.id] = rpcSuccess.result;
+        return acc;
+      } else {
+        throw new BadServerDataError(
+          null,
+          "Type 'null' cannot be used as an index type.",
+          null,
+        );
+      }
+    },
+    {},
+  );
 }
 
-export class Client {
+export class Remote {
   private resource: Resource;
   private fetchInit: Omit<RequestInit, "headers"> & { headers: Headers };
   [key: string]: any // necessary for es6 proxy
@@ -124,15 +86,21 @@ export class Client {
 
   batch(
     batchObj: BatchArrayInput,
-    isNotification?: boolean,
-  ): Promise<BatchArrayOutput | undefined>;
+    options?: { isNotification?: false },
+  ): Promise<BatchArrayOutput>;
+  batch(
+    batchObj: BatchArrayInput,
+    options: { isNotification: true },
+  ): Promise<undefined>;
   batch(
     batchObj: BatchObjectInput,
-  ): Promise<BatchObjectOutput | undefined>;
+  ): Promise<BatchObjectOutput>;
   batch(
     batchObj: BatchArrayInput | BatchObjectInput,
-    isNotification?: boolean,
-  ): Promise<BatchArrayOutput | BatchObjectOutput | undefined> {
+    { isNotification }: { isNotification?: boolean } = {},
+  ): Promise<
+    BatchArrayOutput | BatchObjectOutput | undefined
+  > {
     return send(this.resource, {
       ...this.fetchInit,
       body: JSON.stringify(
@@ -151,12 +119,22 @@ export class Client {
         throw new BadServerDataError(
           null,
           "The server returned an invalid batch response.",
-          -32004,
+          null,
         );
       }
     });
   }
 
+  call(
+    method: RpcRequest["method"],
+    params?: RpcRequest["params"],
+    options?: { isNotification?: false; jwt?: string },
+  ): Promise<JsonValue>;
+  call(
+    method: RpcRequest["method"],
+    params: RpcRequest["params"],
+    options: { isNotification: true },
+  ): Promise<undefined>;
   call(
     method: RpcRequest["method"],
     params: RpcRequest["params"],

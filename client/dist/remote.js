@@ -1,27 +1,5 @@
-function bytesToUuid(bytes) {
-    const bits = [
-        ...bytes
-    ].map((bit)=>{
-        const s = bit.toString(16);
-        return bit < 16 ? "0" + s : s;
-    });
-    return [
-        ...bits.slice(0, 4),
-        "-",
-        ...bits.slice(4, 6),
-        "-",
-        ...bits.slice(6, 8),
-        "-",
-        ...bits.slice(8, 10),
-        "-",
-        ...bits.slice(10, 16), 
-    ].join("");
-}
-function generate() {
-    const rnds = crypto.getRandomValues(new Uint8Array(16));
-    rnds[6] = rnds[6] & 15 | 64;
-    rnds[8] = rnds[8] & 63 | 128;
-    return bytesToUuid(rnds);
+function generateId() {
+    return window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
 }
 function createRequest({ method , params , isNotification =false , id  }) {
     const rpcRequest = {
@@ -29,17 +7,19 @@ function createRequest({ method , params , isNotification =false , id  }) {
         method
     };
     params && (rpcRequest.params = params);
-    id = isNotification ? undefined : id !== undefined ? id : generate();
+    id = isNotification ? undefined : id !== undefined ? id : generateId();
     id !== undefined && (rpcRequest.id = id);
     return rpcRequest;
 }
 function createRequestBatch(batchObj, isNotification = false) {
-    return Array.isArray(batchObj) ? batchObj.map((el, _, array)=>createRequest({
-            method: array[0],
-            params: el,
-            isNotification
-        })
-    ).slice(1) : Object.entries(batchObj).map(([key, value])=>createRequest({
+    return Array.isArray(batchObj) ? batchObj.map((el)=>Object.entries(el).map(([method, arr])=>arr.map((params)=>createRequest({
+                    method,
+                    params,
+                    isNotification
+                })
+            )
+        )
+    ).flat(2) : Object.entries(batchObj).map(([key, value])=>createRequest({
             method: value[0],
             params: value[1],
             isNotification,
@@ -49,13 +29,11 @@ function createRequestBatch(batchObj, isNotification = false) {
 }
 class BadServerDataError extends Error {
     id;
-    name;
     code;
     data;
     constructor(id, message, errorCode, data){
         super(message);
         this.id = id;
-        this.name = this.constructor.name;
         this.code = errorCode;
         this.data = data;
     }
@@ -76,44 +54,16 @@ function validateResponse(data1) {
             throw new BadServerDataError(data1.id, data1.error.message, data1.error.code, data1.error.data);
         }
     }
-    throw new BadServerDataError(null, "Received data is no RPC response object.", -32003);
-}
-const httpProxyHandler = {
-    get (client, name) {
-        if (client[name] !== undefined) {
-            return client[name];
-        } else {
-            const proxyFunction = (args)=>client.call(name, args)
-            ;
-            proxyFunction.notify = (args)=>client.call(name, args, {
-                    isNotification: true
-                })
-            ;
-            proxyFunction.auth = (jwt)=>(args)=>client.call(name, args, {
-                        jwt
-                    })
-            ;
-            proxyFunction.batch = (args, isNotification = false)=>client.batch([
-                    name,
-                    ...args
-                ], isNotification)
-            ;
-            return proxyFunction;
-        }
-    }
-};
-function createRemote3(resource, options) {
-    return new Proxy(new Client1(resource, options), httpProxyHandler);
+    throw new BadServerDataError(null, "The received data is no valid JSON-RPC 2.0 Response object.", null);
 }
 function send(resource, fetchInit) {
     return fetch(resource instanceof URL ? resource.href : resource, fetchInit).then((res)=>{
         if (!res.ok) {
-            return Promise.reject(new BadServerDataError(null, `${res.status} '${res.statusText}' received instead of 200-299 range.`, -32002));
+            return Promise.reject(new RangeError(`${res.status} '${res.statusText}' received instead of 200-299 range.`));
         } else if (res.status === 204 || res.headers.get("content-length") === "0") {
             return undefined;
         } else return res.json();
-    }).catch((err)=>Promise.reject(new BadServerDataError(null, err.message, -32001))
-    );
+    });
 }
 function processBatchArray(rpcResponseBatch) {
     return rpcResponseBatch.map((rpcResponse)=>validateResponse(rpcResponse).result
@@ -121,12 +71,17 @@ function processBatchArray(rpcResponseBatch) {
 }
 function processBatchObject(rpcResponseBatch) {
     return rpcResponseBatch.reduce((acc, rpcResponse)=>{
-        acc[rpcResponse.id] = validateResponse(rpcResponse).result;
-        return acc;
+        const rpcSuccess = validateResponse(rpcResponse);
+        if (rpcSuccess.id !== null) {
+            acc[rpcSuccess.id] = rpcSuccess.result;
+            return acc;
+        } else {
+            throw new BadServerDataError(null, "Type 'null' cannot be used as an index type.", null);
+        }
     }, {
     });
 }
-class Client1 {
+class Remote {
     resource;
     fetchInit;
     constructor(resource, options = {
@@ -140,7 +95,8 @@ class Client1 {
         };
         this.resource = resource;
     }
-    batch(batchObj, isNotification) {
+    batch(batchObj, { isNotification  } = {
+    }) {
         return send(this.resource, {
             ...this.fetchInit,
             body: JSON.stringify(createRequestBatch(batchObj, isNotification))
@@ -150,7 +106,7 @@ class Client1 {
             } else if (Array.isArray(rpcResponseBatch) && rpcResponseBatch.length > 0) {
                 return Array.isArray(batchObj) ? processBatchArray(rpcResponseBatch) : processBatchObject(rpcResponseBatch);
             } else {
-                throw new BadServerDataError(null, "The server returned an invalid batch response.", -32004);
+                throw new BadServerDataError(null, "The server returned an invalid batch response.", null);
             }
         });
     }
@@ -175,38 +131,10 @@ class Client1 {
         );
     }
 }
-const wsProxyHandler = {
-    get (client, name) {
-        if (client[name] !== undefined || name === "then") {
-            return client[name];
-        } else {
-            const proxyFunction = (args)=>client.call(name, args)
-            ;
-            proxyFunction.notify = (args)=>client.call(name, args, true)
-            ;
-            proxyFunction.subscribe = ()=>client.subscribe(name)
-            ;
-            return proxyFunction;
-        }
-    }
-};
-function listen(socket) {
-    return new Promise((resolve, reject)=>{
-        socket.onopen = ()=>resolve(socket)
-        ;
-        socket.onerror = (err)=>reject(err)
-        ;
-    });
-}
-function createRemote1(socket) {
-    return listen(socket).then((socket1)=>new Proxy(new Client2(socket1), wsProxyHandler)
-    ).catch((err)=>Promise.reject(new BadServerDataError(null, "An error event occured on the WebSocket connection.", -32005, err.stack))
-    );
-}
 function isObject(obj) {
     return obj !== null && typeof obj === "object" && Array.isArray(obj) === false;
 }
-class Client2 {
+class Remote1 {
     textDecoder;
     payloadData;
     socket;
@@ -346,8 +274,17 @@ class Client2 {
         };
     }
 }
-function createRemote2(resourceOrSocket, options1) {
-    return resourceOrSocket instanceof WebSocket ? createRemote1(resourceOrSocket) : createRemote3(resourceOrSocket, options1);
+function listen(socket2) {
+    return new Promise((resolve, reject)=>{
+        socket2.onopen = ()=>resolve(socket2)
+        ;
+        socket2.onerror = (err)=>reject(err)
+        ;
+    });
 }
-export { createRemote2 as createRemote };
+function createRemote1(resourceOrSocket, options1) {
+    return resourceOrSocket instanceof WebSocket ? listen(resourceOrSocket).then((socket2)=>new Remote1(socket2)
+    ) : new Remote(resourceOrSocket, options1);
+}
+export { createRemote1 as createRemote };
 

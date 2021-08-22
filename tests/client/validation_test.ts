@@ -1,7 +1,7 @@
-import { assertEquals, assertNotEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertNotEquals, assertThrows } from "../test_deps.ts";
 
-import { validateResponse } from "../client/validation.ts";
-import { BadServerDataError } from "../client/error.ts";
+import { validateResponse } from "../../client/validation.ts";
+import { BadServerDataError } from "../../client/error.ts";
 
 const methods = {
   subtract: (a: number, b: number) => a - b,
@@ -45,7 +45,7 @@ Deno.test("validate response object", function (): void {
       });
     },
     BadServerDataError,
-    "Received data is no RPC response object.",
+    "The received data is no valid JSON-RPC 2.0 Response object.",
   );
   assertThrows((): void => {
     validateResponse({

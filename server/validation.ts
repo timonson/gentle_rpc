@@ -1,4 +1,5 @@
-import { ServerMethods } from "./response.ts";
+import { Methods } from "./response.ts";
+
 import type {
   JsonArray,
   JsonObject,
@@ -19,7 +20,7 @@ export type ValidationFailure = {
   id: RpcId;
   message: string;
   code: number;
-  data?: Error["stack"];
+  data?: JsonValue;
 };
 export type ValidationObject = ValidationSuccess | ValidationFailure;
 
@@ -69,7 +70,7 @@ function tryToParse(json: string) {
 
 export function validateRequest(
   body: string,
-  methods: ServerMethods,
+  methods: Methods,
 ): ValidationObject | ValidationObject[] {
   const [decodedBody, parsingError] = tryToParse(body);
   if (parsingError) return parsingError;
@@ -82,7 +83,7 @@ export function validateRequest(
 
 export function validateRpcRequestObject(
   decodedBody: any,
-  methods: ServerMethods,
+  methods: Methods,
 ): ValidationObject {
   if (isObject(decodedBody)) {
     if (
@@ -106,7 +107,7 @@ export function validateRpcRequestObject(
     } else if ("params" in decodedBody && !isRpcParams(decodedBody.params)) {
       return {
         code: -32602,
-        message: "Invalid parameters",
+        message: "Invalid params",
         id: decodedBody.id,
         isError: true,
       };

@@ -1,16 +1,12 @@
-// Examples from: https://www.jsonrpc.org/specification#examples
-
 import {
   assertEquals,
   assertNotEquals,
   assertThrowsAsync,
-} from "./test_deps.ts";
-
-import { respond } from "../server/response.ts";
-
-import { CustomError } from "../server/custom_error.ts";
-
-import type { ServerRequest } from "./test_deps.ts";
+  create,
+  ServerRequest,
+} from "../test_deps.ts";
+import { respond } from "../../server/response.ts";
+import { CustomError } from "../../server/custom_error.ts";
 
 function createReq(str: string) {
   return {
@@ -41,7 +37,17 @@ const methods = {
       "details": "error details",
     });
   },
+  login: (payload: { user: string }) => {
+    return payload.user;
+  },
 };
+
+const key = await crypto.subtle.generateKey(
+  { name: "HMAC", hash: "SHA-384" },
+  true,
+  ["sign", "verify"],
+);
+const jwt = await create({ alg: "HS384", typ: "JWT" }, { user: "Bob" }, key);
 
 Deno.test("rpc call with positional parameters", async function (): Promise<
   void
@@ -88,11 +94,12 @@ Deno.test("rpc call of non-existent method", async function (): Promise<void> {
   );
 });
 
-Deno.test("rpc call with invalid JSON", async function (): Promise<void> {
-  const sentToServer =
-    '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]';
+Deno.test("rpc call with invalid request object", async function (): Promise<
+  void
+> {
+  const sentToServer = '{"jsonrpc": "2.0", "method": 1, "params": "bar"}';
   const sentToClient =
-    '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
+    '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
 
   assertEquals(
     await respond(methods, createReq(sentToServer)),
@@ -100,12 +107,35 @@ Deno.test("rpc call with invalid JSON", async function (): Promise<void> {
   );
 });
 
-Deno.test("rpc call with invalid Request object", async function (): Promise<
-  void
-> {
-  const sentToServer = '{"jsonrpc": "2.0", "method": 1, "params": "bar"}';
+Deno.test("rpc call, invalid params", async function (): Promise<void> {
+  const sentToServer =
+    '{"jsonrpc": "2.0", "method": "subtract", "params": 42, "id": 1}';
   const sentToClient =
-    '{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": null}';
+    '{"jsonrpc": "2.0", "error": {"code": -32602, "message": "Invalid params"}, "id": 1}';
+
+  assertEquals(
+    await respond(methods, createReq(sentToServer)),
+    removeWhiteSpace(sentToClient),
+  );
+});
+
+Deno.test("rpc call, internal error", async function (): Promise<void> {
+  const sentToServer =
+    '{"jsonrpc": "2.0", "method": "throwError", "params": ["error"], "id": 1}';
+  const sentToClient =
+    '{"jsonrpc": "2.0", "error": {"code": -32603, "message": "Internal error"}, "id": 1}';
+
+  assertEquals(
+    await respond(methods, createReq(sentToServer)),
+    removeWhiteSpace(sentToClient),
+  );
+});
+
+Deno.test("rpc call with invalid JSON", async function (): Promise<void> {
+  const sentToServer =
+    '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]';
+  const sentToClient =
+    '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}';
 
   assertEquals(
     await respond(methods, createReq(sentToServer)),
@@ -193,7 +223,7 @@ Deno.test(
     assertEquals(
       await respond(methods, createReq(sentToServer), {
         additionalArguments: [{
-          arg: { s: "DB query result:" },
+          args: { s: "DB query result:" },
           allMethods: true,
         }],
       }),
@@ -202,7 +232,7 @@ Deno.test(
     assertEquals(
       await respond(methods, createReq(sentToServer), {
         additionalArguments: [{
-          arg: { s: "DB query result:" },
+          args: { s: "DB query result:" },
           methods: ["queryDatabase"],
         }],
       }),
@@ -211,11 +241,28 @@ Deno.test(
     assertEquals(
       await respond(methods, createReq(sentToServer), {
         additionalArguments: [{
-          arg: { s: "DB query result:" },
+          args: { s: "DB query result:" },
         }],
       }),
       removeWhiteSpace(
         '{"jsonrpc": "2.0", "result": "undefined Joe", "id": "a"}',
+      ),
+    );
+    assertEquals(
+      await respond(
+        methods,
+        createReq(
+          '{"jsonrpc": "2.0", "method": "queryDatabase", "params": ["Joe"], "id": "a"}',
+        ),
+        {
+          additionalArguments: [{
+            args: { s: "DB query result:" },
+            allMethods: true,
+          }],
+        },
+      ),
+      removeWhiteSpace(
+        '{"jsonrpc": "2.0", "error": {"code": -32010, "message": "Server error"}, "id": "a"}',
       ),
     );
   },
@@ -252,5 +299,60 @@ Deno.test("rpc call with a custom error", async function (): Promise<
   assertEquals(
     await respond(methods, createReq(sentToServer)),
     removeWhiteSpace(sentToClient),
+  );
+});
+
+Deno.test("rpc call with jwt", async function (): Promise<void> {
+  const sentToServer = '{"jsonrpc": "2.0", "method": "login", "id": 3}';
+  const sentToClient = '{"jsonrpc": "2.0", "result": "Bob", "id": 3}';
+  const reqOne = createReq(sentToServer);
+  reqOne.headers = new Headers({
+    "Authorization": `Bearer ${jwt}`,
+  });
+  assertEquals(
+    await respond(methods, reqOne, {
+      headers: new Headers({
+        "Authorization": `Bearer ${jwt}`,
+      }),
+      auth: { key, methods: ["login"] },
+    }),
+    removeWhiteSpace(sentToClient),
+  );
+  const reqTwo = createReq(sentToServer);
+  reqTwo.headers = new Headers({
+    "Authorization": `Bearer ${jwt.slice(1)}`,
+  });
+  assertEquals(
+    await respond(methods, reqTwo, {
+      auth: { key, methods: ["login"] },
+    }),
+    removeWhiteSpace(
+      '{"jsonrpc": "2.0", "error": {"code": -32020, "message": "Server error"}, "id": 3}',
+    ),
+  );
+  const reqThree = createReq(
+    '{"jsonrpc": "2.0", "method": "login", "params": {"user": "Bob"}, "id": 3}',
+  );
+  reqThree.headers = new Headers({
+    "Authorization": `Bearer ${jwt.slice(1)}`,
+  });
+  assertEquals(
+    await respond(methods, reqThree, {
+      auth: { key, methods: ["notify_hello"], allMethods: true },
+    }),
+    removeWhiteSpace(
+      '{"jsonrpc": "2.0", "error": {"code": -32020, "message": "Server error"}, "id": 3}',
+    ),
+  );
+  const reqFour = createReq(
+    '{"jsonrpc": "2.0", "method": "login", "params": {"user": "Bob"}, "id": 3}',
+  );
+  assertEquals(
+    await respond(methods, reqFour, {
+      auth: { key, methods: ["login"], allMethods: true },
+    }),
+    removeWhiteSpace(
+      '{"jsonrpc": "2.0", "error": {"code": -32020, "message": "Server error"}, "id": 3}',
+    ),
   );
 });

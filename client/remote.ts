@@ -1,21 +1,27 @@
-import { createRemote as createHttpRemote } from "./http.ts";
-import { createRemote as createWsRemote } from "./ws.ts";
+import { Remote as HttpRemote } from "./http.ts";
+import { Remote as WsRemote } from "./ws.ts";
 
-import type { HttpProxy, Resource } from "./http.ts";
-import type { WsProxy } from "./ws.ts";
+import type { Resource } from "./http.ts";
+
+function listen(socket: WebSocket): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    socket.onopen = () => resolve(socket);
+    socket.onerror = (err) => reject(err);
+  });
+}
 
 export function createRemote(
   resource: Resource,
   options?: RequestInit,
-): HttpProxy;
+): HttpRemote;
 export function createRemote(
   socket: WebSocket,
-): Promise<WsProxy>;
+): Promise<WsRemote>;
 export function createRemote(
   resourceOrSocket: Resource | WebSocket,
   options?: RequestInit,
 ) {
   return resourceOrSocket instanceof WebSocket
-    ? createWsRemote(resourceOrSocket)
-    : createHttpRemote(resourceOrSocket, options);
+    ? listen(resourceOrSocket).then((socket) => new WsRemote(socket))
+    : new HttpRemote(resourceOrSocket, options);
 }

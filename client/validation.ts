@@ -39,7 +39,7 @@ export function validateResponse(data: unknown): RpcSuccess {
   }
   throw new BadServerDataError(
     null,
-    "Received data is no RPC response object.",
-    -32003,
+    "The received data is no valid JSON-RPC 2.0 Response object.",
+    null,
   );
 }

@@ -5,7 +5,6 @@ import { isWebSocketCloseEvent } from "./deps.ts";
 import type { CreationInput } from "./creation.ts";
 import type { WebSocket } from "./deps.ts";
 import type { MethodsAndIdsStore } from "./ws_internal_methods.ts";
-import type { RespondOptions } from "./response.ts";
 
 type Input = Omit<CreationInput, "validationObject"> & { socket: WebSocket };
 type Emission = {
@@ -19,13 +18,10 @@ function partialEmitListener(
   return async function emitListener(event: CustomEvent) {
     const { method, params } = event.detail as Emission;
     const methodsAndIdsStore = options
-      .additionalArguments.find((item) => item.arg.methodsAndIdsStore)?.arg
+      .additionalArguments.find((item) => item.args.methodsAndIdsStore)?.args
       .methodsAndIdsStore as MethodsAndIdsStore;
     if (methodsAndIdsStore?.has(method)) {
-      const ids = [
-        methodsAndIdsStore.get(method)!
-          .values(),
-      ];
+      const ids = [...methodsAndIdsStore.get(method)!.values()];
       return ids.map(async (id) => {
         const response = await createResponseObject({
           validationObject: validateRpcRequestObject(
@@ -53,7 +49,7 @@ export async function handleWs(
   // console.log("socket connected!");
 
   let emitListenerOrNull = null;
-  if (!options.disableInternalMethods) {
+  if (options.enableInternalMethods) {
     emitListenerOrNull = partialEmitListener({
       socket,
       methods,
@@ -89,14 +85,14 @@ export async function handleWs(
       } else if (isWebSocketCloseEvent(ev)) {
         // const { code, reason } = ev;
         // console.log("ws:Close", code, reason);
-        if (!options.disableInternalMethods) {
+        if (options.enableInternalMethods) {
           removeEventListener("emit", emitListenerOrNull as EventListener);
         }
       }
     }
   } catch (err) {
     console.error(`failed to receive frame: ${err}`);
-    if (!options.disableInternalMethods && emitListenerOrNull) {
+    if (options.enableInternalMethods && emitListenerOrNull) {
       removeEventListener("emit", emitListenerOrNull as EventListener);
     }
     if (!socket.isClosed) {

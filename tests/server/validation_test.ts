@@ -1,10 +1,10 @@
-import { assertEquals, assertNotEquals, assertThrows } from "./test_deps.ts";
-
-import { validateRequest } from "../server/validation.ts";
+import { assertEquals, assertNotEquals, assertThrows } from "../test_deps.ts";
+import { validateRequest } from "../../server/validation.ts";
 
 const methods = {
   subtract: (a: number, b: number) => a - b,
 };
+
 Deno.test("validate request object", function (): void {
   assertEquals(
     validateRequest(
@@ -31,7 +31,7 @@ Deno.test("validate request object", function (): void {
     ),
     {
       code: -32602,
-      message: "Invalid parameters",
+      message: "Invalid params",
       id: "abc",
       isError: true,
     },

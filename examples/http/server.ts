@@ -29,5 +29,6 @@ for await (const req of server) {
   respond(rpcMethods, req, {
     auth: { key, methods: ["login"] },
     publicErrorStack: true,
+    cors: true,
   });
 }

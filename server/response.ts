@@ -52,7 +52,13 @@ export async function respond(
 ) {
   switch (proto) {
     case "http":
-      if (cors) headers.append("access-control-allow-origin", "*");
+      if (cors) {
+        headers.append("access-control-allow-origin", "*");
+        headers.append(
+          "access-control-allow-headers",
+          "Content-Type, Authorization",
+        );
+      }
       if (auth.methods || auth.allMethods) {
         auth.authHeader = req.headers.get("Authorization");
       }

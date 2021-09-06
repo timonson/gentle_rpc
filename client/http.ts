@@ -17,20 +17,23 @@ function send(
   return fetch(
     resource instanceof URL ? resource.href : resource,
     fetchInit,
-  )
-    .then((res: Response) => {
-      if (!res.ok) {
-        return Promise.reject(
-          new RangeError(
-            `${res.status} '${res.statusText}' received instead of 200-299 range.`,
-          ),
-        );
-      } else if (
-        res.status === 204 || res.headers.get("content-length") === "0"
-      ) {
-        return undefined;
-      } else return res.json();
-    });
+  ).then((res: Response) => {
+    if (!res.ok) {
+      return Promise.reject(
+        new BadServerDataError(
+          null,
+          `The HTTP response status code is not in the range 200-299. ` +
+            `Instead received ${res.status} '${res.statusText}'.`,
+        ),
+      );
+    } else if (
+      res.status === 204 || res.headers.get("content-length") === "0"
+    ) {
+      return undefined;
+    } else {
+      return res.json();
+    }
+  }).catch((err) => Promise.reject(new BadServerDataError(null, err.message)));
 }
 
 export function processBatchArray(
@@ -54,7 +57,6 @@ export function processBatchObject(
         throw new BadServerDataError(
           null,
           "Type 'null' cannot be used as an index type.",
-          null,
         );
       }
     },
@@ -119,7 +121,6 @@ export class Remote {
         throw new BadServerDataError(
           null,
           "The server returned an invalid batch response.",
-          null,
         );
       }
     });

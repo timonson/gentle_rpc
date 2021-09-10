@@ -20,7 +20,7 @@ function send(
   ).then((res: Response) => {
     if (!res.ok) {
       return Promise.reject(
-        new BadServerDataError(
+        new RangeError(
           null,
           `The HTTP response status code is not in the range 200-299. ` +
             `Instead received ${res.status} '${res.statusText}'.`,
@@ -31,9 +31,11 @@ function send(
     ) {
       return undefined;
     } else {
-      return res.json();
+      return res.json().catch((err) =>
+        Promise.reject(new BadServerDataError(null, err.message))
+      );
     }
-  }).catch((err) => Promise.reject(new BadServerDataError(null, err.message)));
+  });
 }
 
 export function processBatchArray(

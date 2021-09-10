@@ -21,7 +21,6 @@ function send(
     if (!res.ok) {
       return Promise.reject(
         new RangeError(
-          null,
           `The HTTP response status code is not in the range 200-299. ` +
             `Instead received ${res.status} '${res.statusText}'.`,
         ),

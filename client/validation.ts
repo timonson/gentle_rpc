@@ -25,7 +25,16 @@ function validateRpcFailure(data: any): data is RpcFailure {
   );
 }
 
-export function validateResponse(data: unknown): RpcSuccess {
+export function validateResponse(
+  data: unknown,
+  isNotification?: boolean,
+): RpcSuccess {
+  if (isNotification && data !== undefined) {
+    throw new BadServerDataError(
+      null,
+      "The server's response to the notification contains unexpected data.",
+    );
+  }
   if (validateRpcBasis(data)) {
     if (validateRpcSuccess(data)) return data;
     else if (validateRpcFailure(data)) {

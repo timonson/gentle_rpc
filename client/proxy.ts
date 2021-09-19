@@ -3,12 +3,12 @@ import type { BatchArrayOutput, Remote as HttpRemote } from "./http.ts";
 import type { Remote as WsRemote } from "./ws.ts";
 
 /**
-  * Example:
-  * const proxy = new Proxy<HttpProxy>(
-  *   createRemote(resource, options),
-  *   httpProxyHandler,
-  * );
-  */
+ * Example:
+ * const proxy = new Proxy<HttpProxy>(
+ *   createRemote(resource, options),
+ *   httpProxyHandler,
+ * );
+ */
 type HttpProxyFunction = {
   (
     params?: RpcRequest["params"],
@@ -48,12 +48,12 @@ export const httpProxyHandler = {
 };
 
 /**
-  * Example:
-  * const proxy = new Proxy<WsProxy>(
-  *   await createRemote(socket),
-  *   wsProxyHandler,
-  * );
-  */
+ * Example:
+ * const proxy = new Proxy<WsProxy>(
+ *   await createRemote(socket),
+ *   wsProxyHandler,
+ * );
+ */
 type WsProxyFunction = {
   (
     params?: RpcRequest["params"],

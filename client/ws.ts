@@ -61,8 +61,8 @@ export class Remote {
 
         //Processes for the method 'emitBatch':
         if (Array.isArray(parsedData) && !isOnetime && parsedData.length > 0) {
-          const invalid = parsedData.map(validateResponse).find((res) =>
-            !isObject(res.result) || res.result.event !== "emitted"
+          const invalid = parsedData.map((data) => validateResponse(data)).find(
+            (res) => !isObject(res.result) || res.result.event !== "emitted",
           );
           if (invalid) {
             throw new BadServerDataError(

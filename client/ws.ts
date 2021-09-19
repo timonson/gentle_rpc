@@ -81,7 +81,7 @@ export class Remote {
 
         // Process for the method 'emitBatch':
         if (Array.isArray(parsedData) && parsedData.length > 0) {
-          const rpcResponses = parsedData.map(validateResponse);
+          const rpcResponses = parsedData.map((data) => validateResponse(data));
           const invalid = rpcResponses.find((res) =>
             !isObject(res.result) || res.result.event !== "emitted"
           );

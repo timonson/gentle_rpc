@@ -12,8 +12,11 @@ const rpcMethods = {
   },
   sendJwt: async ({ user }: { user: string }) =>
     await create({ alg: "HS384", typ: "JWT" }, { user }, key),
-  login: (payload: { user: string }) => {
+  login: ({ payload }: { payload: { user: string } }) => {
     return payload.user;
+  },
+  additionalArg: ({ db }: any) => {
+    return db.data;
   },
 };
 
@@ -30,5 +33,9 @@ for await (const req of server) {
     auth: { key, methods: ["login"] },
     publicErrorStack: true,
     cors: true,
+    additionalArguments: [{
+      args: { db: { data: "some data" } },
+      methods: ["additionalArg"],
+    }],
   });
 }

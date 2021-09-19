@@ -2,8 +2,9 @@ import { handleHttpRequest } from "./http.ts";
 import { handleWs } from "./ws.ts";
 import { acceptWebSocket } from "./deps.ts";
 import { internalMethods } from "./ws_internal_methods.ts";
+import { createRpcResponseObject } from "./creation.ts";
 
-import type { ServerRequest, WebSocket } from "./deps.ts";
+import type { WebSocket } from "./deps.ts";
 import type { JsonValue } from "../json_rpc_types.ts";
 
 export type Methods = {
@@ -32,14 +33,12 @@ export type Options = {
     key?: CryptoKey;
     methods?: (keyof Methods)[];
     allMethods?: boolean;
-    // 'authHeader' will be set internally:
-    authHeader?: string | null;
   };
 };
 
 export async function respond(
   methods: Methods,
-  req: ServerRequest,
+  req: Request,
   {
     headers = new Headers(),
     publicErrorStack = false,
@@ -52,17 +51,7 @@ export async function respond(
 ) {
   switch (proto) {
     case "http":
-      if (cors) {
-        headers.append("access-control-allow-origin", "*");
-        headers.append(
-          "access-control-allow-headers",
-          "Content-Type, Authorization",
-        );
-      }
-      if (auth.methods || auth.allMethods) {
-        auth.authHeader = req.headers.get("Authorization");
-      }
-      const rpcResponse = await handleHttpRequest(
+      const response = await handleHttpRequest(
         req,
         methods,
         {
@@ -74,79 +63,63 @@ export async function respond(
           cors,
           auth,
         },
+        req.headers.get("Authorization"),
       );
-      await req.respond(
-        rpcResponse === undefined
-          ? {
-            status: 204,
-            headers: headers,
-          }
-          : {
-            body: new TextEncoder().encode(rpcResponse),
-            headers: new Headers(
-              [...headers.entries(), [
-                "content-type",
-                "application/json",
-              ]],
-            ),
-            status: 200,
-          },
-      );
-      return rpcResponse;
+      return response;
       break;
-    case "ws":
-      const { conn, r: bufReader, w: bufWriter, headers: reqHeaders } = req;
-      return acceptWebSocket({
-        conn,
-        bufReader,
-        bufWriter,
-        headers: reqHeaders,
-      })
-        .then((socket: WebSocket) => {
-          const methodsAndIdsStore = new Map();
-          if (enableInternalMethods) {
-            return handleWs(
-              {
-                socket,
-                methods: { ...methods, ...internalMethods },
-                options: {
-                  headers,
-                  publicErrorStack,
-                  enableInternalMethods,
-                  additionalArguments: [...additionalArguments, {
-                    args: { methodsAndIdsStore },
-                    methods: ["subscribe", "unsubscribe"],
-                  }],
-                  proto,
-                  cors,
-                  auth,
-                },
-              },
-            );
-          } else {
-            return handleWs(
-              {
-                socket,
-                methods,
-                options: {
-                  headers,
-                  publicErrorStack,
-                  enableInternalMethods,
-                  additionalArguments,
-                  proto,
-                  cors,
-                  auth,
-                },
-              },
-            );
-          }
-        })
-        .catch(async (err) => {
-          console.error(`Failed to accept websocket: ${err}`);
-          await req.respond({ status: 400 });
-          return err;
-        });
-      break;
+    // case "ws":
+    // const { conn, r: bufReader, w: bufWriter, headers: reqHeaders } = req;
+    // return acceptWebSocket({
+    // conn,
+    // bufReader,
+    // bufWriter,
+    // headers: reqHeaders,
+    // })
+    // .then((socket: WebSocket) => {
+    // const methodsAndIdsStore = new Map();
+    // if (enableInternalMethods) {
+    // return handleWs(
+    // {
+    // socket,
+    // methods: { ...methods, ...internalMethods },
+    // options: {
+    // headers,
+    // publicErrorStack,
+    // enableInternalMethods,
+    // additionalArguments: [...additionalArguments, {
+    // args: { methodsAndIdsStore },
+    // methods: ["subscribe", "unsubscribe"],
+    // }],
+    // proto,
+    // cors,
+    // auth,
+    // },
+    // },
+    // );
+    // } else {
+    // return handleWs(
+    // {
+    // socket,
+    // methods,
+    // options: {
+    // headers,
+    // publicErrorStack,
+    // enableInternalMethods,
+    // additionalArguments,
+    // proto,
+    // cors,
+    // auth,
+    // },
+    // },
+    // );
+    // }
+    // })
+    // .catch(async (err) => {
+    // console.error(`Failed to accept websocket: ${err}`);
+    // await req.respond({ status: 400 });
+    // return err;
+    // });
+    // break;
     default:
       throw new TypeError(`The protocol '${proto}' is not supported.`);
   }

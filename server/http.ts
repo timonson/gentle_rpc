@@ -3,21 +3,24 @@ import { validateRequest } from "./validation.ts";
 import { verifyJwt } from "./auth.ts";
 
 import type { Methods, Options } from "./response.ts";
-import type { ServerRequest } from "./deps.ts";
-import type { ValidationObject } from "./validation.ts";
 
 export async function handleHttpRequest(
-  req: ServerRequest,
+  req: Request,
   methods: Methods,
   options: Required<Options>,
-): Promise<string | undefined> {
-  const message = new TextDecoder().decode(await Deno.readAll(req.body));
-  const validationObjectOrBatch = validateRequest(message, methods);
+  authHeader: string | null,
+): Promise<Response> {
+  const validationObjectOrBatch = validateRequest(await req.text(), methods);
   const responseObjectOrBatchOrNull = Array.isArray(validationObjectOrBatch)
     ? await cleanBatch(
       validationObjectOrBatch.map(async (rpc) =>
         createResponseObject(
-          await verifyJwt({ validationObject: rpc, methods, options }),
+          await verifyJwt({
+            validationObject: rpc,
+            methods,
+            options,
+            authHeader,
+          }),
         )
       ),
     )
@@ -26,9 +29,36 @@ export async function handleHttpRequest(
         validationObject: validationObjectOrBatch,
         methods,
         options,
+        authHeader,
       }),
     );
-  return responseObjectOrBatchOrNull === null
-    ? undefined
-    : JSON.stringify(responseObjectOrBatchOrNull);
+  const headers = new Headers(options.headers);
+  if (options.cors) {
+    headers.append("access-control-allow-origin", "*");
+    headers.append(
+      "access-control-allow-headers",
+      "Content-Type, Authorization",
+    );
+  }
+  if (responseObjectOrBatchOrNull === null) {
+    return new Response(null, { status: 204, headers: headers });
+  } else {
+    headers.append("content-type", "application/json");
+    return ("error" in responseObjectOrBatchOrNull &&
+        responseObjectOrBatchOrNull.error.code === -32700)
+      ? new Response(
+        JSON.stringify(responseObjectOrBatchOrNull),
+        {
+          status: 400,
+          headers,
+        },
+      )
+      : new Response(
+        JSON.stringify(responseObjectOrBatchOrNull),
+        {
+          status: 200,
+          headers,
+        },
+      );
+  }
 }

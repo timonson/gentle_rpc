@@ -1,10 +1,13 @@
 import { verify } from "./deps.ts";
 
+import type { Payload } from "./deps.ts";
 import type { CreationInput } from "./creation.ts";
 
 export async function verifyJwt(
-  { validationObject, methods, options }: CreationInput,
-): Promise<CreationInput> {
+  { validationObject, methods, options, authHeader }: CreationInput & {
+    authHeader: string | null;
+  },
+): Promise<CreationInput & { jwtPayload?: Payload }> {
   if (validationObject.isError) return { validationObject, methods, options };
   if (
     options.auth.allMethods ||
@@ -12,24 +15,20 @@ export async function verifyJwt(
   ) {
     try {
       if (options.auth.key === undefined) {
-        throw new Error("No CryptoKey.");
+        throw new Error("Authentication requires a CryptoKey.");
       }
       if (
-        !options.auth.authHeader ||
-        !options.auth.authHeader.startsWith("Bearer ") ||
-        options.auth.authHeader.length <= 7
+        !authHeader ||
+        !authHeader.startsWith("Bearer ") ||
+        authHeader.length <= 7
       ) {
         throw new Error("No Authorization Header, no Bearer or no token.");
       } else {
-        const payload = await verify(
-          options.auth.authHeader.slice(7),
+        const jwtPayload = await verify(
+          authHeader.slice(7),
           options.auth.key,
         );
-        options.additionalArguments.push({
-          args: payload,
-          methods: options.auth.methods,
-          allMethods: options.auth.allMethods,
-        });
+        return { validationObject, methods, options, jwtPayload };
       }
     } catch (err) {
       return {
@@ -44,6 +43,7 @@ export async function verifyJwt(
         options,
       };
     }
+  } else {
+    return { validationObject, methods, options };
   }
-  return { validationObject, methods, options };
 }

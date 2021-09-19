@@ -1,6 +1,7 @@
 import { CustomError } from "./custom_error.ts";
 
 import type {
+  JsonObject,
   RpcBatchResponse,
   RpcError,
   RpcResponse,
@@ -8,6 +9,7 @@ import type {
 } from "../json_rpc_types.ts";
 import type { ValidationObject } from "./validation.ts";
 import type { Methods, Options } from "./response.ts";
+import type { Payload } from "./deps.ts";
 
 export type CreationInput = {
   validationObject: ValidationObject;
@@ -51,8 +53,15 @@ async function executeMethods(
 function addArgument(
   obj: ValidationObject,
   { additionalArguments, publicErrorStack }: Required<Options>,
+  jwtPayload?: Payload,
 ): ValidationObject {
-  if (obj.isError || additionalArguments.length === 0) {
+  if (obj.isError) {
+    return obj;
+  }
+  const args = additionalArguments.filter((item) =>
+    item.allMethods || item.methods?.includes(obj.method)
+  ).reduce((acc, item) => ({ ...acc, ...item.args }), {});
+  if (Object.keys(args).length === 0 && !jwtPayload) {
     return obj;
   }
   if (Array.isArray(obj.params)) {
@@ -68,13 +77,11 @@ function addArgument(
       isError: true,
     };
   }
-  const args = additionalArguments.filter((item) =>
-    item.allMethods || item.methods?.includes(obj.method)
-  ).reduce((acc, item) => ({ ...acc, ...item.args }), {});
   obj.params = {
     ...obj.params,
     ...args,
   };
+  if (jwtPayload) obj.params.payload = jwtPayload as JsonObject;
   return obj;
 }
 
@@ -88,10 +95,12 @@ export async function cleanBatch(
 }
 
 export async function createResponseObject(
-  { validationObject, methods, options }: CreationInput,
+  { validationObject, methods, options, jwtPayload }: CreationInput & {
+    jwtPayload?: Payload;
+  },
 ): Promise<RpcResponseOrNull> {
   const obj: ValidationObject = await executeMethods(
-    addArgument(validationObject, options),
+    addArgument(validationObject, options, jwtPayload),
     methods,
     options.publicErrorStack,
   );

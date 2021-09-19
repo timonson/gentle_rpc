@@ -65,7 +65,7 @@ Takes a `Resource` for HTTP or a `WebSocket` for WebSockets and returns
 ```typescript
 import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts";
 // Or import directly into the browser with:
-import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v3.0/client/dist/remote.js";
+import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v3.1/client/dist/remote.js";
 
 // HTTP:
 const remote = createRemote("http://0.0.0.0:8000");

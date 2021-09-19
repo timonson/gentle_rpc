@@ -10,10 +10,9 @@ JSON-RPC 2.0 library (server and client) with HTTP and WebSockets support for
 Takes `Methods`, `ServerRequest` and `Options`.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.105.0/http/server.ts";
+import { listenAndServe } from "https://deno.land/std@0.107.0/http/server.ts";
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts";
 
-const server = serve("0.0.0.0:8000");
 const rpcMethods = {
   sayHello: ([w]: [string]) => `Hello ${w}`,
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
@@ -24,11 +23,10 @@ const rpcMethods = {
 
 console.log("listening on 0.0.0.0:8000");
 
-for await (const req of server) {
   // HTTP:
-  respond(rpcMethods, req);
+listenAndServe(":8000", (req) => respond(rpcMethods, req));
   // WebSockets:
-  respond(rpcMethods, req, { proto: "ws" });
+listenAndServe(":8000", (req) => respond(rpcMethods, req, { proto: "ws" }));
 }
 ```
 

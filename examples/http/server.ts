@@ -1,7 +1,5 @@
-import { create, serve } from "../example_deps.ts";
+import { create, listenAndServe } from "../example_deps.ts";
 import { respond } from "../../mod.ts";
-
-const server = serve("0.0.0.0:8000");
 
 const rpcMethods = {
   sayHello: ([w]: [string | undefined] = [undefined]) => `Hello ${w || ""}`,
@@ -28,7 +26,7 @@ const key = await crypto.subtle.generateKey(
 
 console.log("listening on 0.0.0.0:8000");
 
-for await (const req of server) {
+listenAndServe(":8000", (req) =>
   respond(rpcMethods, req, {
     auth: { key, methods: ["login"] },
     publicErrorStack: true,
@@ -37,5 +35,4 @@ for await (const req of server) {
       args: { db: { data: "some data" } },
       methods: ["additionalArg"],
     }],
-  });
-}
+  }));

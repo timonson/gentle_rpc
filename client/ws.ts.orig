@@ -79,11 +79,18 @@ export class Remote {
         }
         const parsedData = JSON.parse(payloadData);
 
+<<<<<<< HEAD
+        //Processes for the method 'emitBatch':
+        if (Array.isArray(parsedData) && !isOnetime && parsedData.length > 0) {
+          const invalid = parsedData.map((data) => validateResponse(data)).find(
+            (res) => !isObject(res.result) || res.result.event !== "emitted",
+=======
         // Process for the method 'emitBatch':
         if (Array.isArray(parsedData) && parsedData.length > 0) {
           const rpcResponses = parsedData.map(validateResponse);
           const invalid = rpcResponses.find((res) =>
             !isObject(res.result) || res.result.event !== "emitted"
+>>>>>>> master
           );
           if (invalid) {
             throw new BadServerDataError(

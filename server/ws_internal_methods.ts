@@ -47,7 +47,12 @@ function emit(
     dispatchEvent(
       new CustomEvent("emit", { detail: { method, params } }),
     );
-    return { event: "emitted", id, method };
+    return {
+      event: "emitted",
+      id,
+      method,
+      ...(typeof params !== "undefined" ? { params } : {}),
+    };
   } else {
     throw new Error("Wrong arguments.");
   }

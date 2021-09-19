@@ -3,9 +3,18 @@ import { BadServerDataError } from "./error.ts";
 import type {
   JsonValue,
   RpcFailure,
+  RpcNotification,
   RpcResponseBasis,
   RpcSuccess,
 } from "../json_rpc_types.ts";
+
+export function validateRpcNotification(data: any): data is RpcNotification {
+  return (
+    data?.jsonrpc === "2.0" &&
+    typeof data.method === "string" &&
+    typeof data.id === "undefined"
+  );
+}
 
 function validateRpcBasis(data: any): data is RpcResponseBasis {
   return (

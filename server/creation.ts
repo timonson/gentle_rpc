@@ -70,9 +70,7 @@ function addArgument(
       message: "Server error",
       id: obj.id,
       data: publicErrorStack
-        ? new Error(
-          "By-position ordered parameters are not allowed for this method.",
-        ).stack
+        ? new Error("The method requires named parameters.").stack
         : undefined,
       isError: true,
     };

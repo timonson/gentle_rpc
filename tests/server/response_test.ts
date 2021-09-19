@@ -4,7 +4,6 @@ import {
   assertThrowsAsync,
   create,
   Payload,
-  ServerRequest,
 } from "../test_deps.ts";
 import { respond } from "../../server/response.ts";
 import { CustomError } from "../../server/custom_error.ts";

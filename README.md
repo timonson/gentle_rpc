@@ -22,9 +22,9 @@ const rpcMethods = {
 };
 
   // HTTP:
-listenAndServe(":8000", (req) => respond(rpcMethods, req));
+listenAndServe("0.0.0.0:8000", (req) => respond(rpcMethods, req));
   // WebSockets:
-listenAndServe(":8000", (req) => respond(rpcMethods, req, { proto: "ws" }));
+listenAndServe("0.0.0.0:8000", (req) => respond(rpcMethods, req, { proto: "ws" }));
 }
 
 console.log("listening on 0.0.0.0:8000");

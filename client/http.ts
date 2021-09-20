@@ -24,7 +24,7 @@ function send(
         err,
       ) =>
         Promise.reject(
-          new BadServerDataError(null, "The received data is no valid JSON."),
+          new BadServerDataError(null, "The received data is not valid JSON."),
         )
       )
   );

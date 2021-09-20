@@ -24,8 +24,6 @@ const key = await crypto.subtle.generateKey(
   ["sign", "verify"],
 );
 
-console.log("listening on 0.0.0.0:8000");
-
 listenAndServe(":8000", (req) =>
   respond(rpcMethods, req, {
     auth: { key, methods: ["login"] },
@@ -36,3 +34,5 @@ listenAndServe(":8000", (req) =>
       methods: ["additionalArg"],
     }],
   }));
+
+console.log("listening on 0.0.0.0:8000");

@@ -2,8 +2,8 @@ import type { JsonValue, RpcId } from "../json_rpc_types.ts";
 
 export class BadServerDataError extends Error {
   id: RpcId;
-  code?: number | undefined;
-  data?: JsonValue | undefined;
+  code?: number;
+  data?: JsonValue;
   constructor(
     id: RpcId,
     message: string,

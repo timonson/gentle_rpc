@@ -13,6 +13,7 @@ function isObject(obj: unknown): obj is Record<string, unknown> {
 export class Remote {
   private textDecoder?: TextDecoder;
   private payloadData!: Promise<JsonValue>;
+  private payloadQueue: JsonValue[] = [];
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
   constructor(
@@ -24,6 +25,13 @@ export class Remote {
 
   private async getPayloadData(socket: WebSocket): Promise<void> {
     this.payloadData = new Promise<JsonValue>((resolve, reject) => {
+      if (this.payloadQueue.length > 0) {
+        const payload = this.payloadQueue.shift()!;
+        resolve(payload);
+        return;
+      }
+
+      let isResolved = false;
       socket.onmessage = async (event: MessageEvent) => {
         let msg: string;
         if (event.data instanceof Blob) {
@@ -34,7 +42,13 @@ export class Remote {
           msg = event.data;
         }
         try {
-          resolve(JSON.parse(msg));
+          const payload = JSON.parse(msg);
+          if (isResolved) {
+            this.payloadQueue.push(payload);
+            return;
+          }
+          resolve(payload);
+          isResolved = true;
         } catch (err) {
           reject(
             new BadServerDataError(null, "The received data is invalid JSON."),

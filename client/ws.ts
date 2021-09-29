@@ -12,7 +12,7 @@ function isObject(obj: unknown): obj is Record<string, unknown> {
 
 export class Remote {
   private textDecoder?: TextDecoder;
-  private payloadData!: Promise<string | null>;
+  private payloadData!: Promise<JsonObject | null>;
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
   constructor(
@@ -23,7 +23,7 @@ export class Remote {
   }
 
   private async getPayloadData(socket: WebSocket): Promise<void> {
-    this.payloadData = new Promise((resolve, reject) => {
+    this.payloadData = new Promise<JsonObject | null>((resolve, reject) => {
       socket.onmessage = async (event: MessageEvent) => {
         let msg: string;
         if (event.data instanceof Blob) {
@@ -33,7 +33,16 @@ export class Remote {
         } else {
           msg = event.data;
         }
-        resolve(msg);
+
+        let payload: JsonObject;
+        try {
+          payload = JSON.parse(msg) as JsonObject;
+        } catch (error) {
+          throw new BadServerDataError(null, `The server sent invalid JSON: ${error.message}`, null);
+        }
+
+        resolve(payload);
+        isResolved = true;
       };
       socket.onclose = () => resolve(null);
     });
@@ -55,16 +64,16 @@ export class Remote {
       if (payloadData === null) {
         break;
       }
-      const parsedData = JSON.parse(payloadData);
 
       // Batch emits are handled by the subscription iterator
-      if (Array.isArray(parsedData)) continue;
+      if (Array.isArray(payloadData)) continue;
 
-      const rpcResponse = validateResponse(parsedData);
-      if (rpcResponse.id === rpcRequest.id) {
-        yield rpcResponse.result;
-        break;
-      }
+      // Ignore non-responses
+      if (payloadData.id !== rpcRequest.id) continue;
+
+      const rpcResponse = validateResponse(payloadData);
+      yield rpcResponse.result;
+      break;
     }
   }
 
@@ -77,11 +86,10 @@ export class Remote {
         if (payloadData === null) {
           break;
         }
-        const parsedData = JSON.parse(payloadData);
 
         // Process for the method 'emitBatch':
-        if (Array.isArray(parsedData) && parsedData.length > 0) {
-          const rpcResponses = parsedData.map(validateResponse);
+        if (Array.isArray(payloadData) && payloadData.length > 0) {
+          const rpcResponses = payloadData.map(validateResponse);
           const invalid = rpcResponses.find((res) =>
             !isObject(res.result) || res.result.event !== "emitted"
           );
@@ -99,7 +107,7 @@ export class Remote {
             }
           }
         } else {
-          const rpcResponse = validateResponse(parsedData);
+          const rpcResponse = validateResponse(payloadData);
           if (
             isObject(rpcResponse.result) &&
             rpcResponse.result.id === rpcRequest.id
@@ -137,10 +145,9 @@ export class Remote {
       if (payloadData === null) {
         break;
       }
-      const parsedData = JSON.parse(payloadData);
 
-      if (validateRpcNotification(parsedData)) {
-        const rpcNotification = parsedData;
+      if (validateRpcNotification(payloadData)) {
+        const rpcNotification = payloadData;
         if (rpcNotification.method === eventName) {
           yield rpcNotification.params || null;
         }

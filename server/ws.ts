@@ -1,9 +1,8 @@
-import { cleanBatch, createResponseObject } from "./creation.ts";
+import { createRpcResponseOrBatch } from "./creation.ts";
 import { validateRequest, validateRpcRequestObject } from "./validation.ts";
 import { isWebSocketCloseEvent } from "./deps.ts";
 
 import type { CreationInput } from "./creation.ts";
-import type { WebSocket } from "./deps.ts";
 import type { MethodsAndIdsStore } from "./ws_internal_methods.ts";
 
 type Input = Omit<CreationInput, "validationObject"> & { socket: WebSocket };
@@ -14,6 +13,7 @@ type Emission = {
 
 function partialEmitListener(
   { socket, methods, options }: Input,
+  authHeader: string | null,
 ) {
   return async function emitListener(event: CustomEvent) {
     const { method, params } = event.detail as Emission;
@@ -23,14 +23,17 @@ function partialEmitListener(
     if (methodsAndIdsStore?.has(method)) {
       const ids = [...methodsAndIdsStore.get(method)!.values()];
       return ids.map(async (id) => {
-        const response = await createResponseObject({
-          validationObject: validateRpcRequestObject(
-            { method, params, id, jsonrpc: "2.0" },
+        const response = await createRpcResponseOrBatch(
+          validateRpcRequestObject(
+            params === undefined
+              ? { method, id, jsonrpc: "2.0" }
+              : { method, params, id, jsonrpc: "2.0" },
             methods,
           ),
           methods,
           options,
-        });
+          authHeader,
+        );
         if (response) {
           try {
             return await socket.send(JSON.stringify(response));
@@ -45,58 +48,45 @@ function partialEmitListener(
 
 export async function handleWs(
   { socket, methods, options }: Input,
+  jwtOrNull: string | null,
 ) {
-  // console.log("socket connected!");
-
-  let emitListenerOrNull = null;
+  const authHeader = typeof jwtOrNull === "string"
+    ? `Bearer ${jwtOrNull}`
+    : null;
+  let emitListenerOrNull: null | ((event: CustomEvent<any>) => void) = null;
   if (options.enableInternalMethods) {
     emitListenerOrNull = partialEmitListener({
       socket,
       methods,
       options,
-    });
+    }, authHeader);
     addEventListener("emit", emitListenerOrNull as EventListener);
   }
-
-  try {
-    for await (const ev of socket) {
-      if (typeof ev === "string") {
-        // console.log("ws:Text", ev);
-        const validationObjectOrBatch = validateRequest(ev, methods);
-        const responseObjectOrBatchOrNull =
-          Array.isArray(validationObjectOrBatch)
-            ? await cleanBatch(
-              validationObjectOrBatch.map(async (validationObject) =>
-                await createResponseObject(
-                  { validationObject, methods, options },
-                )
-              ),
-            )
-            : await createResponseObject(
-              {
-                validationObject: validationObjectOrBatch,
-                methods,
-                options,
-              },
-            );
-        if (responseObjectOrBatchOrNull) {
-          await socket.send(JSON.stringify(responseObjectOrBatchOrNull));
-        }
-      } else if (isWebSocketCloseEvent(ev)) {
-        // const { code, reason } = ev;
-        // console.log("ws:Close", code, reason);
-        if (options.enableInternalMethods) {
-          removeEventListener("emit", emitListenerOrNull as EventListener);
-        }
-      }
+  socket.onopen = () => {
+    // console.log("socket connected!");
+  };
+  socket.onmessage = async (ev) => {
+    const validationObjectOrBatch = validateRequest(ev.data, methods);
+    const rpcResponseOrBatchOrNull = await createRpcResponseOrBatch(
+      validationObjectOrBatch,
+      methods,
+      options,
+      authHeader,
+    );
+    if (rpcResponseOrBatchOrNull) {
+      socket.send(JSON.stringify(rpcResponseOrBatchOrNull));
     }
-  } catch (err) {
-    console.error(`failed to receive frame: ${err}`);
-    if (options.enableInternalMethods && emitListenerOrNull) {
+  };
+  socket.onclose = () => {
+    if (options.enableInternalMethods) {
       removeEventListener("emit", emitListenerOrNull as EventListener);
     }
-    if (!socket.isClosed) {
-      await socket.close(1000).catch((err) => console.error(err));
+    console.log("WebSocket has been closed.");
+  };
+  socket.onerror = (ev) => {
+    if (options.enableInternalMethods) {
+      removeEventListener("emit", emitListenerOrNull as EventListener);
     }
-  }
+    console.error("WebSocket error");
+  };
 }

@@ -1,4 +1,5 @@
 import { CustomError } from "./custom_error.ts";
+import { verifyJwt } from "./auth.ts";
 
 import type {
   JsonObject,
@@ -16,8 +17,12 @@ export type CreationInput = {
   methods: Methods;
   options: Required<Options>;
 };
+export type RpcResponseOrBatchOrNull =
+  | RpcResponse
+  | RpcBatchResponse
+  | null;
 type RpcResponseOrNull = RpcResponse | null;
-type BatchResponseOrNull = RpcBatchResponse | null;
+type RpcBatchResponseOrNull = RpcBatchResponse | null;
 
 async function executeMethods(
   obj: ValidationObject,
@@ -85,14 +90,36 @@ function addArgument(
 
 export async function cleanBatch(
   batch: Promise<RpcResponseOrNull>[],
-): Promise<BatchResponseOrNull> {
+): Promise<RpcBatchResponseOrNull> {
   const batchResponse = (await Promise.all(batch)).filter((
     obj: RpcResponseOrNull,
   ): obj is RpcResponse => obj !== null);
   return batchResponse.length > 0 ? batchResponse : null;
 }
 
-export async function createResponseObject(
+export function createRpcResponseObject(
+  obj:
+    | Omit<RpcSuccess, "jsonrpc">
+    | (RpcError & { id: RpcSuccess["id"] }),
+): RpcResponse {
+  return "result" in obj && !("code" in obj)
+    ? {
+      jsonrpc: "2.0",
+      result: obj.result,
+      id: obj.id,
+    }
+    : {
+      jsonrpc: "2.0",
+      error: {
+        code: obj.code,
+        message: obj.message,
+        data: obj.data,
+      },
+      id: obj.id,
+    };
+}
+
+export async function createRpcResponse(
   { validationObject, methods, options, jwtPayload }: CreationInput & {
     jwtPayload?: Payload;
   },
@@ -120,24 +147,31 @@ export async function createResponseObject(
   }
 }
 
-export function createRpcResponseObject(
-  obj:
-    | Omit<RpcSuccess, "jsonrpc">
-    | (RpcError & { id: RpcSuccess["id"] }),
-): RpcResponse {
-  return "result" in obj && !("code" in obj)
-    ? {
-      jsonrpc: "2.0",
-      result: obj.result,
-      id: obj.id,
-    }
-    : {
-      jsonrpc: "2.0",
-      error: {
-        code: obj.code,
-        message: obj.message,
-        data: obj.data,
-      },
-      id: obj.id,
-    };
+export async function createRpcResponseOrBatch(
+  validationObjectOrBatch: ValidationObject | ValidationObject[],
+  methods: Methods,
+  options: Required<Options>,
+  authHeader: string | null,
+): Promise<RpcResponseOrBatchOrNull> {
+  return Array.isArray(validationObjectOrBatch)
+    ? await cleanBatch(
+      validationObjectOrBatch.map(async (validationObject) =>
+        createRpcResponse(
+          await verifyJwt({
+            validationObject,
+            methods,
+            options,
+            authHeader,
+          }),
+        )
+      ),
+    )
+    : await createRpcResponse(
+      await verifyJwt({
+        validationObject: validationObjectOrBatch,
+        methods,
+        options,
+        authHeader,
+      }),
+    );
 }

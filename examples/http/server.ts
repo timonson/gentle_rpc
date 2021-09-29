@@ -35,4 +35,4 @@ listenAndServe("0.0.0.0:8000", (req) =>
     }],
   }));
 
-console.log("listening on 0.0.0.0:8000");
+console.log("Listening on 0.0.0.0:8000");

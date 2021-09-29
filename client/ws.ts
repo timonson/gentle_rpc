@@ -59,7 +59,6 @@ export class Remote {
 
       // Batch emits are handled by the subscription iterator
       if (Array.isArray(parsedData)) continue;
-
       const rpcResponse = validateResponse(parsedData);
       if (rpcResponse.id === rpcRequest.id) {
         yield rpcResponse.result;
@@ -171,11 +170,11 @@ export class Remote {
   ) {
     const rpcRequest = createRequest({
       method: "subscribe",
-    });
+    }) as Required<RpcRequest>;
     this.socket.send(JSON.stringify(
       {
         ...rpcRequest,
-        params: { method, id: rpcRequest.id as string },
+        params: { method, id: rpcRequest.id },
       },
     ));
     return {
@@ -183,7 +182,7 @@ export class Remote {
       unsubscribe: (params?: RpcRequest["params"]): void => {
         const rpcRequestUnsubscription = createRequest({
           method: "unsubscribe",
-          params: { method, id: rpcRequest.id as string },
+          params: { method, id: rpcRequest.id },
         });
         return this.socket.send(JSON.stringify(
           rpcRequestUnsubscription,
@@ -194,7 +193,7 @@ export class Remote {
           {
             ...rpcRequest,
             method: "emit",
-            params: { method, params, id: rpcRequest.id as string },
+            params: { method, params, id: rpcRequest.id },
           },
         ));
       },
@@ -203,7 +202,7 @@ export class Remote {
           {
             ...rpcRequest,
             method: "emit",
-            params: { method, params: p, id: rpcRequest.id as string },
+            params: { method, params: p, id: rpcRequest.id },
           }
         ))));
       },

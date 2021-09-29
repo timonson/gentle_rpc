@@ -41,12 +41,10 @@ export class Remote {
           throw new BadServerDataError(
             null,
             `The server sent invalid JSON: ${error.message}`,
-            null,
           );
         }
 
         resolve(payload);
-        isResolved = true;
       };
       socket.onclose = () => resolve(null);
     });
@@ -93,7 +91,9 @@ export class Remote {
 
         // Process for the method 'emitBatch':
         if (Array.isArray(payloadData) && payloadData.length > 0) {
-          const rpcResponses = payloadData.map(validateResponse);
+          const rpcResponses = payloadData.map((data) =>
+            validateResponse(data)
+          );
           const invalid = rpcResponses.find((res) =>
             !isObject(res.result) || res.result.event !== "emitted"
           );

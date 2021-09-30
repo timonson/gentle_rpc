@@ -1,7 +1,5 @@
-import { create, serve } from "../example_deps.ts";
+import { create, listenAndServe } from "../example_deps.ts";
 import { respond } from "../../mod.ts";
-
-const server = serve("0.0.0.0:8000");
 
 const rpcMethods = {
   sayHello: ([w]: [string | undefined] = [undefined]) => `Hello ${w || ""}`,
@@ -12,8 +10,11 @@ const rpcMethods = {
   },
   sendJwt: async ({ user }: { user: string }) =>
     await create({ alg: "HS384", typ: "JWT" }, { user }, key),
-  login: (payload: { user: string }) => {
+  login: ({ payload }: { payload: { user: string } }) => {
     return payload.user;
+  },
+  additionalArg: ({ db }: any) => {
+    return db.data;
   },
 };
 
@@ -23,12 +24,15 @@ const key = await crypto.subtle.generateKey(
   ["sign", "verify"],
 );
 
-console.log("listening on 0.0.0.0:8000");
-
-for await (const req of server) {
+listenAndServe("0.0.0.0:8000", (req) =>
   respond(rpcMethods, req, {
     auth: { key, methods: ["login"] },
     publicErrorStack: true,
     cors: true,
-  });
-}
+    additionalArguments: [{
+      args: { db: { data: "some data" } },
+      methods: ["additionalArg"],
+    }],
+  }));
+
+console.log("Listening on 0.0.0.0:8000");

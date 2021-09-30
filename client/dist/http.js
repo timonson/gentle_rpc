@@ -122,6 +122,10 @@ function _createSuper(Derived) {
 function _possibleConstructorReturn(self, call) {
   if (call && (_typeof(call) === "object" || typeof call === "function")) {
     return call;
+  } else if (call !== void 0) {
+    throw new TypeError(
+      "Derived constructors may only return object or undefined",
+    );
   }
   return _assertThisInitialized(self);
 }
@@ -345,7 +349,7 @@ var BadServerDataError = /*#__PURE__*/ function (_Error) {
 
   var _super = _createSuper(BadServerDataError);
 
-  function BadServerDataError(id, message, errorCode, data) {
+  function BadServerDataError(id1, message, errorCode, data1) {
     var _this;
 
     _classCallCheck(this, BadServerDataError);
@@ -358,46 +362,53 @@ var BadServerDataError = /*#__PURE__*/ function (_Error) {
 
     _defineProperty(_assertThisInitialized(_this), "data", void 0);
 
-    _this.id = id;
+    _this.name = _this.constructor.name;
+    _this.id = id1;
     _this.code = errorCode;
-    _this.data = data;
+    _this.data = data1;
     return _this;
   }
 
   return BadServerDataError;
 }(/*#__PURE__*/ _wrapNativeSuper(Error));
 
-function validateRpcBasis(data1) {
-  return (data1 === null || data1 === void 0 ? void 0 : data1.jsonrpc) ===
-      "2.0" &&
-    (typeof data1.id === "number" || typeof data1.id === "string" ||
-      data1.id === null);
+function validateRpcBasis(data) {
+  return (data === null || data === void 0 ? void 0 : data.jsonrpc) === "2.0" &&
+    (typeof data.id === "number" || typeof data.id === "string" ||
+      data.id === null);
 }
 
-function validateRpcSuccess(data1) {
-  return "result" in data1;
+function validateRpcSuccess(data) {
+  return "result" in data;
 }
 
-function validateRpcFailure(data1) {
-  var _data1$error;
+function validateRpcFailure(data) {
+  var _data$error;
 
-  return typeof (data1 === null || data1 === void 0
+  return typeof (data === null || data === void 0
         ? void 0
-        : (_data1$error = data1.error) === null || _data1$error === void 0
+        : (_data$error = data.error) === null || _data$error === void 0
         ? void 0
-        : _data1$error.code) === "number" &&
-    typeof data1.error.message === "string";
+        : _data$error.code) === "number" &&
+    typeof data.error.message === "string";
 }
 
-function validateResponse(data1) {
-  if (validateRpcBasis(data1)) {
-    if (validateRpcSuccess(data1)) return data1;
-    else if (validateRpcFailure(data1)) {
+function validateResponse(data, isNotification) {
+  if (isNotification && data !== undefined) {
+    throw new BadServerDataError(
+      null,
+      "The server's response to the notification contains unexpected data.",
+    );
+  }
+
+  if (validateRpcBasis(data)) {
+    if (validateRpcSuccess(data)) return data;
+    else if (validateRpcFailure(data)) {
       throw new BadServerDataError(
-        data1.id,
-        data1.error.message,
-        data1.error.code,
-        data1.error.data,
+        data.id,
+        data.error.message,
+        data.error.code,
+        data.error.data,
       );
     }
   }
@@ -405,39 +416,33 @@ function validateResponse(data1) {
   throw new BadServerDataError(
     null,
     "The received data is no valid JSON-RPC 2.0 Response object.",
-    null,
   );
 }
 
 function send(resource, fetchInit) {
   return fetch(resource instanceof URL ? resource.href : resource, fetchInit)
     .then(function (res) {
-      if (!res.ok) {
-        return Promise.reject(
-          new RangeError(
-            "".concat(res.status, " '").concat(
-              res.statusText,
-              "' received instead of 200-299 range.",
-            ),
-          ),
-        );
-      } else if (
-        res.status === 204 || res.headers.get("content-length") === "0"
-      ) {
-        return undefined;
-      } else return res.json();
+      return res.status === 204 || res.headers.get("content-length") === "0"
+        ? undefined
+        : res.text().then(function (text) {
+          return text ? JSON.parse(text) : undefined;
+        })["catch"](function (err) {
+          return Promise.reject(
+            new BadServerDataError(null, "The received data is invalid JSON."),
+          );
+        });
     });
 }
 
-function processBatchArray1(rpcResponseBatch) {
+function processBatchArray1(rpcResponseBatch, isNotification) {
   return rpcResponseBatch.map(function (rpcResponse) {
-    return validateResponse(rpcResponse).result;
+    return validateResponse(rpcResponse, isNotification).result;
   });
 }
 
-function processBatchObject1(rpcResponseBatch) {
+function processBatchObject1(rpcResponseBatch, isNotification) {
   return rpcResponseBatch.reduce(function (acc, rpcResponse) {
-    var rpcSuccess = validateResponse(rpcResponse);
+    var rpcSuccess = validateResponse(rpcResponse, isNotification);
 
     if (rpcSuccess.id !== null) {
       acc[rpcSuccess.id] = rpcSuccess.result;
@@ -446,14 +451,13 @@ function processBatchObject1(rpcResponseBatch) {
       throw new BadServerDataError(
         null,
         "Type 'null' cannot be used as an index type.",
-        null,
       );
     }
   }, {});
 }
 
 var Remote1 = /*#__PURE__*/ function () {
-  function Remote1(resource) {
+  function Remote1(resource1) {
     var options = arguments.length > 1 && arguments[1] !== undefined
       ? arguments[1]
       : {};
@@ -474,7 +478,7 @@ var Remote1 = /*#__PURE__*/ function () {
       method: "POST",
       headers: headers,
     });
-    this.resource = resource;
+    this.resource = resource1;
   }
 
   _createClass(Remote1, [{
@@ -497,13 +501,12 @@ var Remote1 = /*#__PURE__*/ function () {
           Array.isArray(rpcResponseBatch) && rpcResponseBatch.length > 0
         ) {
           return Array.isArray(batchObj)
-            ? processBatchArray1(rpcResponseBatch)
-            : processBatchObject1(rpcResponseBatch);
+            ? processBatchArray1(rpcResponseBatch, isNotification)
+            : processBatchObject1(rpcResponseBatch, isNotification);
         } else {
           throw new BadServerDataError(
             null,
             "The server returned an invalid batch response.",
-            null,
           );
         }
       });
@@ -538,7 +541,7 @@ var Remote1 = /*#__PURE__*/ function () {
       ).then(function (rpcResponse) {
         return rpcResponse === undefined && isNotification
           ? undefined
-          : validateResponse(rpcResponse).result;
+          : validateResponse(rpcResponse, isNotification).result;
       });
     },
   }]);

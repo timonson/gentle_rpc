@@ -3,12 +3,12 @@ import type { BatchArrayOutput, Remote as HttpRemote } from "./http.ts";
 import type { Remote as WsRemote } from "./ws.ts";
 
 /**
-  * Example:
-  * const proxy = new Proxy<HttpProxy>(
-  *   createRemote(resource, options),
-  *   httpProxyHandler,
-  * );
-  */
+ * Example:
+ * const proxy = new Proxy<HttpProxy>(
+ *   createRemote(resource, options),
+ *   httpProxyHandler,
+ * );
+ */
 type HttpProxyFunction = {
   (
     params?: RpcRequest["params"],
@@ -48,19 +48,19 @@ export const httpProxyHandler = {
 };
 
 /**
-  * Example:
-  * const proxy = new Proxy<WsProxy>(
-  *   await createRemote(socket),
-  *   wsProxyHandler,
-  * );
-  */
+ * Example:
+ * const proxy = new Proxy<WsProxy>(
+ *   await createRemote(socket),
+ *   wsProxyHandler,
+ * );
+ */
 type WsProxyFunction = {
   (
     params?: RpcRequest["params"],
-  ): ReturnType<WsRemote["call"]>;
+  ): Promise<JsonValue>;
   notify: (
     params?: RpcRequest["params"],
-  ) => ReturnType<WsRemote["call"]>;
+  ) => Promise<undefined>;
   subscribe: () => ReturnType<WsRemote["subscribe"]>;
   listen: () => ReturnType<WsRemote["listen"]>;
 };
@@ -78,7 +78,8 @@ export const wsProxyHandler = {
       return client[name as keyof WsRemote];
     } else {
       const proxyFunction: WsProxyFunction = (args?) => client.call(name, args);
-      proxyFunction.notify = (args?) => client.call(name, args, true);
+      proxyFunction.notify = (args?) =>
+        client.call(name, args, { isNotification: true });
       proxyFunction.subscribe = () => client.subscribe(name);
       proxyFunction.listen = () => client.listen(name);
       return proxyFunction;

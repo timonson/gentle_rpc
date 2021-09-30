@@ -17,36 +17,35 @@ function send(
   return fetch(
     resource instanceof URL ? resource.href : resource,
     fetchInit,
-  )
-    .then((res: Response) => {
-      if (!res.ok) {
-        return Promise.reject(
-          new RangeError(
-            `${res.status} '${res.statusText}' received instead of 200-299 range.`,
-          ),
-        );
-      } else if (
-        res.status === 204 || res.headers.get("content-length") === "0"
-      ) {
-        return undefined;
-      } else return res.json();
-    });
+  ).then((res: Response) =>
+    res.status === 204 || res.headers.get("content-length") === "0"
+      ? undefined
+      : res.text().then((text) => text ? JSON.parse(text) : undefined).catch((
+        err,
+      ) =>
+        Promise.reject(
+          new BadServerDataError(null, "The received data is invalid JSON."),
+        )
+      )
+  );
 }
 
 export function processBatchArray(
   rpcResponseBatch: JsonArray,
+  isNotification?: boolean,
 ): BatchArrayOutput {
   return rpcResponseBatch.map((rpcResponse) =>
-    validateResponse(rpcResponse).result
+    validateResponse(rpcResponse, isNotification).result
   );
 }
 
 export function processBatchObject(
   rpcResponseBatch: JsonArray,
+  isNotification?: boolean,
 ): BatchObjectOutput {
   return rpcResponseBatch.reduce<BatchObjectOutput>(
     (acc, rpcResponse: unknown) => {
-      const rpcSuccess = validateResponse(rpcResponse);
+      const rpcSuccess = validateResponse(rpcResponse, isNotification);
       if (rpcSuccess.id !== null) {
         acc[rpcSuccess.id] = rpcSuccess.result;
         return acc;
@@ -54,7 +53,6 @@ export function processBatchObject(
         throw new BadServerDataError(
           null,
           "Type 'null' cannot be used as an index type.",
-          null,
         );
       }
     },
@@ -113,13 +111,12 @@ export class Remote {
         Array.isArray(rpcResponseBatch) && rpcResponseBatch.length > 0
       ) {
         return Array.isArray(batchObj)
-          ? processBatchArray(rpcResponseBatch)
-          : processBatchObject(rpcResponseBatch);
+          ? processBatchArray(rpcResponseBatch, isNotification)
+          : processBatchObject(rpcResponseBatch, isNotification);
       } else {
         throw new BadServerDataError(
           null,
           "The server returned an invalid batch response.",
-          null,
         );
       }
     });
@@ -159,7 +156,7 @@ export class Remote {
     }).then((rpcResponse) =>
       rpcResponse === undefined && isNotification
         ? undefined
-        : validateResponse(rpcResponse).result
+        : validateResponse(rpcResponse, isNotification).result
     );
   }
 }

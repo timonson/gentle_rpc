@@ -17,8 +17,7 @@ const noise = await firstClient.callNamedParameters({
 // The result is: 200
 console.log(noise);
 
-// Send messages between firstClient and secondClient (see file
-// secondClient.ts).
+// Send messages between firstClient and secondClient:
 
 async function run(iter: AsyncGenerator<unknown>) {
   try {
@@ -31,12 +30,12 @@ async function run(iter: AsyncGenerator<unknown>) {
 }
 
 const firstClientGreeting = firstClient.sayHello.subscribe();
-run(firstClientGreeting.generator);
-firstClientGreeting.emit({ w: "first" });
-
 const secondClientGreeting = secondClient.sayHello.subscribe();
+
+run(firstClientGreeting.generator);
 run(secondClientGreeting.generator);
-secondClientGreeting.emitBatch([{ w: "second" }, { w: "third" }]);
+firstClientGreeting.emit(["first"]);
+secondClientGreeting.emit(["second"]);
 
 setTimeout(() => firstClientGreeting.unsubscribe());
 setTimeout(() => secondClientGreeting.unsubscribe());

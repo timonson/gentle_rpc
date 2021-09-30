@@ -1,9 +1,8 @@
 import { handleHttpRequest } from "./http.ts";
 import { handleWs } from "./ws.ts";
-import { acceptWebSocket } from "./deps.ts";
 import { internalMethods } from "./ws_internal_methods.ts";
+import { createRpcResponseObject } from "./creation.ts";
 
-import type { ServerRequest, WebSocket } from "./deps.ts";
 import type { JsonValue } from "../json_rpc_types.ts";
 
 export type Methods = {
@@ -16,8 +15,8 @@ export type Options = {
   publicErrorStack?: boolean;
   // enable 'subscribe', 'emit' and 'unsubscribe' (only ws):
   enableInternalMethods?: boolean;
-  // defaults to http:
-  proto?: "ws" | "http";
+  // defaults to both:
+  proto?: "ws" | "http" | "both";
   // Enable CORS via the "Access-Control-Allow-Origin" header (only http):
   cors?: boolean;
   // The server can pass additional arguments to the rpc methods:
@@ -27,127 +26,76 @@ export type Options = {
     methods?: (keyof Methods)[];
     allMethods?: boolean;
   }[];
-  // for jwt verification (only http):
+  // for jwt verification:
   auth?: {
     key?: CryptoKey;
     methods?: (keyof Methods)[];
     allMethods?: boolean;
-    // 'authHeader' will be set internally:
-    authHeader?: string | null;
+    jwt?: string | null;
   };
 };
 
 export async function respond(
   methods: Methods,
-  req: ServerRequest,
+  req: Request,
   {
     headers = new Headers(),
     publicErrorStack = false,
     enableInternalMethods = false,
-    proto = "http",
+    proto = "both",
     cors = false,
     additionalArguments = [],
     auth = {},
   }: Options = {},
-) {
-  switch (proto) {
-    case "http":
-      if (cors) {
-        headers.append("access-control-allow-origin", "*");
-        headers.append(
-          "access-control-allow-headers",
-          "Content-Type, Authorization",
-        );
-      }
-      if (auth.methods || auth.allMethods) {
-        auth.authHeader = req.headers.get("Authorization");
-      }
-      const rpcResponse = await handleHttpRequest(
-        req,
-        methods,
-        {
+): Promise<Response> {
+  const realProto = req.headers.get("upgrade") === "websocket" ? "ws" : "http";
+  if (
+    (proto === "http" || proto === "both") && realProto === "http"
+  ) {
+    return await handleHttpRequest(
+      req,
+      methods,
+      {
+        headers,
+        publicErrorStack,
+        enableInternalMethods,
+        additionalArguments,
+        proto,
+        cors,
+        auth,
+      },
+      req.headers.get("Authorization"),
+    );
+  } else if ((proto === "ws" || proto === "both") && realProto === "ws") {
+    const { socket, response } = Deno.upgradeWebSocket(req);
+    const methodsAndIdsStore = new Map();
+    handleWs(
+      {
+        socket,
+        methods: enableInternalMethods
+          ? { ...methods, ...internalMethods }
+          : methods,
+        options: {
           headers,
           publicErrorStack,
           enableInternalMethods,
-          additionalArguments,
+          additionalArguments: enableInternalMethods
+            ? [...additionalArguments, {
+              args: { methodsAndIdsStore },
+              methods: ["subscribe", "unsubscribe"],
+            }]
+            : additionalArguments,
           proto,
           cors,
           auth,
         },
-      );
-      await req.respond(
-        rpcResponse === undefined
-          ? {
-            status: 204,
-            headers: headers,
-          }
-          : {
-            body: new TextEncoder().encode(rpcResponse),
-            headers: new Headers(
-              [...headers.entries(), [
-                "content-type",
-                "application/json",
-              ]],
-            ),
-            status: 200,
-          },
-      );
-      return rpcResponse;
-      break;
-    case "ws":
-      const { conn, r: bufReader, w: bufWriter, headers: reqHeaders } = req;
-      return acceptWebSocket({
-        conn,
-        bufReader,
-        bufWriter,
-        headers: reqHeaders,
-      })
-        .then((socket: WebSocket) => {
-          const methodsAndIdsStore = new Map();
-          if (enableInternalMethods) {
-            return handleWs(
-              {
-                socket,
-                methods: { ...methods, ...internalMethods },
-                options: {
-                  headers,
-                  publicErrorStack,
-                  enableInternalMethods,
-                  additionalArguments: [...additionalArguments, {
-                    args: { methodsAndIdsStore },
-                    methods: ["subscribe", "unsubscribe"],
-                  }],
-                  proto,
-                  cors,
-                  auth,
-                },
-              },
-            );
-          } else {
-            return handleWs(
-              {
-                socket,
-                methods,
-                options: {
-                  headers,
-                  publicErrorStack,
-                  enableInternalMethods,
-                  additionalArguments,
-                  proto,
-                  cors,
-                  auth,
-                },
-              },
-            );
-          }
-        })
-        .catch(async (err) => {
-          console.error(`Failed to accept websocket: ${err}`);
-          await req.respond({ status: 400 });
-          return err;
-        });
-      break;
-    default:
-      throw new TypeError(`The protocol '${proto}' is not supported.`);
+      },
+      auth.jwt,
+    );
+    return response;
+  } else {
+    throw new TypeError(
+      `The received protocol '${realProto}' doesn't match the expected protocol '${proto}'.`,
+    );
   }
 }

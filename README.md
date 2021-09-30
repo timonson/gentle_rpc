@@ -10,10 +10,9 @@ JSON-RPC 2.0 library (server and client) with HTTP and WebSockets support for
 Takes `Methods`, `ServerRequest` and `Options`.
 
 ```typescript
-import { serve } from "https://deno.land/std@0.105.0/http/server.ts";
+import { listenAndServe } from "https://deno.land/std@0.107.0/http/server.ts";
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts";
 
-const server = serve("0.0.0.0:8000");
 const rpcMethods = {
   sayHello: ([w]: [string]) => `Hello ${w}`,
   callNamedParameters: ({ a, b, c }: { a: number; b: number; c: string }) =>
@@ -22,14 +21,15 @@ const rpcMethods = {
     noise.map((el) => el.toUpperCase()).join(" "),
 };
 
-console.log("listening on 0.0.0.0:8000");
+// HTTP:
+listenAndServe("0.0.0.0:8000", (req) => respond(rpcMethods, req));
+// WebSockets:
+listenAndServe(
+  "0.0.0.0:8000",
+  (req) => respond(rpcMethods, req, { proto: "ws" }),
+);
 
-for await (const req of server) {
-  // HTTP:
-  respond(rpcMethods, req);
-  // WebSockets:
-  respond(rpcMethods, req, { proto: "ws" });
-}
+console.log("listening on 0.0.0.0:8000");
 ```
 
 #### CustomError
@@ -65,7 +65,7 @@ Takes a `Resource` for HTTP or a `WebSocket` for WebSockets and returns
 ```typescript
 import { createRemote } from "https://deno.land/x/gentle_rpc/mod.ts";
 // Or import directly into the browser with:
-import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v3.0/client/dist/remote.js";
+import { createRemote } from "https://cdn.jsdelivr.net/gh/timonson/gentle_rpc@v3.1/client/dist/remote.js";
 
 // HTTP:
 const remote = createRemote("http://0.0.0.0:8000");
@@ -169,7 +169,9 @@ remote.socket.close();
 ##### notification
 
 ```typescript
-const notification = await remote.call("animalsMakeNoise", ["wuufff"], true);
+const notification = await remote.call("animalsMakeNoise", ["wuufff"], {
+  isNotification: true,
+});
 // undefined
 ```
 
@@ -177,8 +179,8 @@ const notification = await remote.call("animalsMakeNoise", ["wuufff"], true);
 
 By using the `subscribe` method you can send messages between multiple clients.
 It returns an object with a generator property
-`{ generator: AsyncGenerator<JsonValue>}` and the methods `emit`, `emitBatch`
-and `unsubscribe`.
+`{ generator: AsyncGenerator<JsonValue>}` and the methods `emit` and
+`unsubscribe`.
 
 Other clients can _listen to_ and _emit_ messages by _subscribing_ to the same
 method.
@@ -197,19 +199,17 @@ async function run(iter: AsyncGenerator<unknown>) {
   }
 }
 
-const greeting = firstClient.subscribe("sayHello");
-const second = secondClient.subscribe("sayHello");
+const greetingFirst = firstClient.subscribe("sayHello");
+const greetingSecond = secondClient.subscribe("sayHello");
 
-run(greeting.generator);
-run(second.generator);
-greeting.emit({ w: "first" });
-second.emitBatch([{ w: "second" }, { w: "third" }]);
+run(greetingFirst.generator);
+run(greetingSecond.generator);
+greetingFirst.emit(["first"]);
+greetingSecond.emit(["second"]);
 // Hello first
 // Hello first
 // Hello second
 // Hello second
-// Hello third
-// Hello third
 ```
 
 ## Proxy API

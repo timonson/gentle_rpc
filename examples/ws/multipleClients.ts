@@ -1,10 +1,20 @@
 import { createRemote } from "../../mod.ts";
 
-// Send messages between firstClient and secondClient (see file
-// secondClient.ts).
+const remote = await createRemote(new WebSocket("ws://0.0.0.0:8000")).catch(
+  (err) => {
+    console.log(err);
+    throw err;
+  },
+);
+const jwt = await remote.call("sendJwt", { user: "Bob" }) as string;
+// eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYm9iIn0.C_jTAzMzjoGGDPIK5oKg4b8Yt8nbvAmbOyAbOk_17BsNu9za8e4KD41kxRvn3RUW
+remote.socket.close();
 
-const firstClient = await createRemote(new WebSocket("ws://0.0.0.0:8000"));
-const secondClient = await createRemote(new WebSocket("ws://0.0.0.0:8000"));
+// Send messages between firstClient and secondClient:
+const firstClient = await createRemote(new WebSocket("ws://0.0.0.0:8000", jwt));
+const secondClient = await createRemote(
+  new WebSocket("ws://0.0.0.0:8000", jwt),
+);
 
 async function run(iter: AsyncGenerator<unknown>) {
   try {
@@ -12,20 +22,28 @@ async function run(iter: AsyncGenerator<unknown>) {
       console.log(x);
     }
   } catch (err) {
-    console.log(err.message, err.code, err.data);
+    console.log(err, err.data);
   }
 }
 
-const greeting = firstClient.subscribe("sayHello");
-const second = secondClient.subscribe("sayHello");
+const greetingFirst = firstClient.subscribe("sayHello");
+const greetingSecond = secondClient.subscribe("sayHello");
+const loginFirst = firstClient.subscribe("login");
+const loginSecond = secondClient.subscribe("login");
 
-run(greeting.generator);
-run(second.generator);
-greeting.emit({ w: "first" });
-second.emitBatch([{ w: "second" }, { w: "third" }]);
+run(greetingFirst.generator);
+run(greetingSecond.generator);
+run(loginFirst.generator);
+run(loginSecond.generator);
 
-setTimeout(() => greeting.unsubscribe());
-setTimeout(() => second.unsubscribe());
+greetingFirst.emit(["first"]);
+greetingSecond.emit(["second"]);
+loginFirst.emit();
+
+setTimeout(() => greetingFirst.unsubscribe());
+setTimeout(() => greetingSecond.unsubscribe());
+setTimeout(() => loginFirst.unsubscribe());
+setTimeout(() => loginSecond.unsubscribe());
 
 setTimeout(() => firstClient.socket.close(), 2000);
 setTimeout(() => secondClient.socket.close(), 2000);

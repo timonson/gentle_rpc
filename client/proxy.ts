@@ -57,10 +57,10 @@ export const httpProxyHandler = {
 type WsProxyFunction = {
   (
     params?: RpcRequest["params"],
-  ): ReturnType<WsRemote["call"]>;
+  ): Promise<JsonValue>;
   notify: (
     params?: RpcRequest["params"],
-  ) => ReturnType<WsRemote["call"]>;
+  ) => Promise<undefined>;
   subscribe: () => ReturnType<WsRemote["subscribe"]>;
   listen: () => ReturnType<WsRemote["listen"]>;
 };
@@ -78,7 +78,8 @@ export const wsProxyHandler = {
       return client[name as keyof WsRemote];
     } else {
       const proxyFunction: WsProxyFunction = (args?) => client.call(name, args);
-      proxyFunction.notify = (args?) => client.call(name, args, true);
+      proxyFunction.notify = (args?) =>
+        client.call(name, args, { isNotification: true });
       proxyFunction.subscribe = () => client.subscribe(name);
       proxyFunction.listen = () => client.listen(name);
       return proxyFunction;

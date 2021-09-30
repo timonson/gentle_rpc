@@ -11,7 +11,6 @@ const rpcMethods = {
   sendJwt: async ({ user }: { user: string }) =>
     await create({ alg: "HS384", typ: "JWT" }, { user }, key),
   login: ({ payload }: { payload: { user: string } }) => {
-    console.log("payload.user:", payload.user);
     return payload.user;
   },
   additionalArg: ({ db }: any) => {
@@ -32,12 +31,16 @@ for await (const conn of server) {
   (async () => {
     const httpConn = Deno.serveHttp(conn);
     for await (const requestEvent of httpConn) {
-      respond(rpcMethods, requestEvent, {
+      requestEvent.respondWith(respond(rpcMethods, requestEvent.request, {
         proto: "ws",
         enableInternalMethods: true,
         publicErrorStack: true,
-        auth: { key, methods: ["login"] },
-      });
+        auth: {
+          key,
+          methods: ["login"],
+          jwt: requestEvent.request.headers.get("sec-websocket-protocol"),
+        },
+      }));
     }
   })();
 }

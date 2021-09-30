@@ -13,7 +13,7 @@ type Emission = {
 
 function partialEmitListener(
   { socket, methods, options }: Input,
-  authHeader: string | null,
+  bearer: string | null,
 ) {
   return async function emitListener(event: CustomEvent) {
     const { method, params } = event.detail as Emission;
@@ -32,7 +32,7 @@ function partialEmitListener(
           ),
           methods,
           options,
-          authHeader,
+          bearer,
         );
         if (response) {
           try {
@@ -48,18 +48,16 @@ function partialEmitListener(
 
 export async function handleWs(
   { socket, methods, options }: Input,
-  jwtOrNull: string | null,
+  jwtOrNull?: string | null,
 ) {
-  const authHeader = typeof jwtOrNull === "string"
-    ? `Bearer ${jwtOrNull}`
-    : null;
+  const bearer = typeof jwtOrNull === "string" ? `Bearer ${jwtOrNull}` : null;
   let emitListenerOrNull: null | ((event: CustomEvent<any>) => void) = null;
   if (options.enableInternalMethods) {
     emitListenerOrNull = partialEmitListener({
       socket,
       methods,
       options,
-    }, authHeader);
+    }, bearer);
     addEventListener("emit", emitListenerOrNull as EventListener);
   }
   socket.onopen = () => {
@@ -71,7 +69,7 @@ export async function handleWs(
       validationObjectOrBatch,
       methods,
       options,
-      authHeader,
+      bearer,
     );
     if (rpcResponseOrBatchOrNull) {
       socket.send(JSON.stringify(rpcResponseOrBatchOrNull));
@@ -81,7 +79,7 @@ export async function handleWs(
     if (options.enableInternalMethods) {
       removeEventListener("emit", emitListenerOrNull as EventListener);
     }
-    console.log("WebSocket has been closed.");
+    // console.log("WebSocket has been closed.");
   };
   socket.onerror = (ev) => {
     if (options.enableInternalMethods) {

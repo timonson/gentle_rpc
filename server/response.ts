@@ -15,8 +15,8 @@ export type Options = {
   publicErrorStack?: boolean;
   // enable 'subscribe', 'emit' and 'unsubscribe' (only ws):
   enableInternalMethods?: boolean;
-  // defaults to http:
-  proto?: "ws" | "http";
+  // defaults to both:
+  proto?: "ws" | "http" | "both";
   // Enable CORS via the "Access-Control-Allow-Origin" header (only http):
   cors?: boolean;
   // The server can pass additional arguments to the rpc methods:
@@ -26,74 +26,76 @@ export type Options = {
     methods?: (keyof Methods)[];
     allMethods?: boolean;
   }[];
-  // for jwt verification (only http):
+  // for jwt verification:
   auth?: {
     key?: CryptoKey;
     methods?: (keyof Methods)[];
     allMethods?: boolean;
+    jwt?: string | null;
   };
 };
 
 export async function respond(
   methods: Methods,
-  req: any,
+  req: Request,
   {
     headers = new Headers(),
     publicErrorStack = false,
     enableInternalMethods = false,
-    proto = "http",
+    proto = "both",
     cors = false,
     additionalArguments = [],
     auth = {},
   }: Options = {},
-) {
-  switch (proto) {
-    case "http":
-      return await handleHttpRequest(
-        req,
-        methods,
-        {
+): Promise<Response> {
+  const realProto = req.headers.get("upgrade") === "websocket" ? "ws" : "http";
+  if (
+    (proto === "http" || proto === "both") && realProto === "http"
+  ) {
+    return await handleHttpRequest(
+      req,
+      methods,
+      {
+        headers,
+        publicErrorStack,
+        enableInternalMethods,
+        additionalArguments,
+        proto,
+        cors,
+        auth,
+      },
+      req.headers.get("Authorization"),
+    );
+  } else if ((proto === "ws" || proto === "both") && realProto === "ws") {
+    const { socket, response } = Deno.upgradeWebSocket(req);
+    const methodsAndIdsStore = new Map();
+    handleWs(
+      {
+        socket,
+        methods: enableInternalMethods
+          ? { ...methods, ...internalMethods }
+          : methods,
+        options: {
           headers,
           publicErrorStack,
           enableInternalMethods,
-          additionalArguments,
+          additionalArguments: enableInternalMethods
+            ? [...additionalArguments, {
+              args: { methodsAndIdsStore },
+              methods: ["subscribe", "unsubscribe"],
+            }]
+            : additionalArguments,
           proto,
           cors,
           auth,
         },
-        req.headers.get("Authorization"),
-      );
-      break;
-    case "ws":
-      const methodsAndIdsStore = new Map();
-      const { socket, response } = Deno.upgradeWebSocket(req.request);
-      handleWs(
-        {
-          socket,
-          methods: enableInternalMethods
-            ? { ...methods, ...internalMethods }
-            : methods,
-          options: {
-            headers,
-            publicErrorStack,
-            enableInternalMethods,
-            additionalArguments: enableInternalMethods
-              ? [...additionalArguments, {
-                args: { methodsAndIdsStore },
-                methods: ["subscribe", "unsubscribe"],
-              }]
-              : additionalArguments,
-            proto,
-            cors,
-            auth,
-          },
-        },
-        req.request.headers.get("sec-websocket-protocol"),
-      );
-      req.respondWith(response);
-      return response;
-      break;
-    default:
-      throw new TypeError(`The protocol '${proto}' is not supported.`);
+      },
+      auth.jwt,
+    );
+    return response;
+  } else {
+    throw new TypeError(
+      `The received protocol '${realProto}' doesn't match the expected protocol '${proto}'.`,
+    );
   }
 }

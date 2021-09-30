@@ -19,10 +19,6 @@ export async function handleHttpRequest(
   const headers = new Headers(options.headers);
   if (options.cors) {
     headers.append("access-control-allow-origin", "*");
-    headers.append(
-      "access-control-allow-headers",
-      "Content-Type, Authorization",
-    );
   }
   if (rpcResponseOrBatchOrNull === null) {
     return new Response(null, { status: 204, headers: headers });

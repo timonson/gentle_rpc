@@ -51,7 +51,6 @@ function emit(
       event: "emitted",
       id,
       method,
-      ...(typeof params !== "undefined" ? { params } : {}),
     };
   } else {
     throw new Error("Wrong arguments.");

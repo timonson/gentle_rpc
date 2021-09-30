@@ -2,7 +2,7 @@ import { createRequest } from "./creation.ts";
 import { validateResponse, validateRpcNotification } from "./validation.ts";
 import { BadServerDataError } from "./error.ts";
 
-import type { JsonObject, JsonValue, RpcRequest } from "../json_rpc_types.ts";
+import type { JsonValue, RpcRequest } from "../json_rpc_types.ts";
 
 function isObject(obj: unknown): obj is Record<string, unknown> {
   return (
@@ -12,7 +12,7 @@ function isObject(obj: unknown): obj is Record<string, unknown> {
 
 export class Remote {
   private textDecoder?: TextDecoder;
-  private payloadData!: Promise<JsonObject | null>;
+  private payloadData!: Promise<JsonValue>;
   socket: WebSocket;
   [key: string]: any // necessary for es6 proxy
   constructor(
@@ -23,7 +23,7 @@ export class Remote {
   }
 
   private async getPayloadData(socket: WebSocket): Promise<void> {
-    this.payloadData = new Promise<JsonObject | null>((resolve, reject) => {
+    this.payloadData = new Promise<JsonValue>((resolve, reject) => {
       socket.onmessage = async (event: MessageEvent) => {
         let msg: string;
         if (event.data instanceof Blob) {
@@ -33,18 +33,13 @@ export class Remote {
         } else {
           msg = event.data;
         }
-
-        let payload: JsonObject;
         try {
-          payload = JSON.parse(msg) as JsonObject;
-        } catch (error) {
-          throw new BadServerDataError(
-            null,
-            `The server sent invalid JSON: ${error.message}`,
+          resolve(JSON.parse(msg));
+        } catch (err) {
+          reject(
+            new BadServerDataError(null, "The received data is invalid JSON."),
           );
         }
-
-        resolve(payload);
       };
       socket.onclose = () => resolve(null);
     });
@@ -62,20 +57,26 @@ export class Remote {
     rpcRequest: RpcRequest,
   ): AsyncGenerator<JsonValue> {
     while (this.socket.readyState < 2) {
-      const payloadData = await this.payloadData;
-      if (payloadData === null) {
+      try {
+        const payloadData = await this.payloadData;
+        if (payloadData === null) {
+          break;
+        }
+        if (validateRpcNotification(payloadData)) {
+          continue;
+        }
+        const rpcResponse = validateResponse(payloadData);
+        if (rpcResponse.id !== rpcRequest.id) {
+          continue;
+        }
+        yield rpcResponse.result;
         break;
+      } catch (err) {
+        if (err.id === rpcRequest.id || err.id === null) {
+          yield Promise.reject(err);
+          break;
+        }
       }
-
-      // Batch emits are handled by the subscription iterator
-      if (Array.isArray(payloadData)) continue;
-
-      // Ignore non-responses
-      if (payloadData.id !== rpcRequest.id) continue;
-
-      const rpcResponse = validateResponse(payloadData);
-      yield rpcResponse.result;
-      break;
     }
   }
 
@@ -88,54 +89,32 @@ export class Remote {
         if (payloadData === null) {
           break;
         }
-
-        // Process for the method 'emitBatch':
-        if (Array.isArray(payloadData) && payloadData.length > 0) {
-          const rpcResponses = payloadData.map((data) =>
-            validateResponse(data)
-          );
-          const invalid = rpcResponses.find((res) =>
-            !isObject(res.result) || res.result.event !== "emitted"
-          );
-          if (invalid) {
-            throw new BadServerDataError(
-              invalid.id || null,
-              "The server returned an invalid batch response.",
-              -32004,
-            );
-          } else {
-            for (const res of rpcResponses) {
-              if ((res.result as JsonObject).id === rpcRequest.id) {
-                yield res.result;
-              }
-            }
+        if (validateRpcNotification(payloadData)) {
+          continue;
+        }
+        const rpcResponse = validateResponse(payloadData);
+        if (rpcResponse.id !== rpcRequest.id) {
+          continue;
+        }
+        if (
+          isObject(rpcResponse.result) &&
+          rpcResponse.result.id === rpcRequest.id
+        ) {
+          if (rpcResponse.result.event === "subscribed") {
+            continue;
+          } else if (rpcResponse.result.event === "unsubscribed") {
+            break;
+          } else if (rpcResponse.result.event === "emitted") {
+            continue;
           }
         } else {
-          const rpcResponse = validateResponse(payloadData);
-          if (
-            isObject(rpcResponse.result) &&
-            rpcResponse.result.id === rpcRequest.id
-          ) {
-            switch (rpcResponse.result.event) {
-              case "subscribed":
-                continue;
-              case "unsubscribed":
-                break;
-              case "emitted":
-                yield rpcResponse.result;
-                break;
-              default:
-                throw new BadServerDataError(
-                  rpcResponse.id ? rpcResponse.id : null,
-                  "The server returned an invalid response.",
-                  -32004,
-                );
-            }
-          }
+          yield rpcResponse.result;
+          continue;
         }
       } catch (err) {
-        if (err.id === rpcRequest.id) {
+        if (err.id === rpcRequest.id || err.id === null) {
           yield Promise.reject(err);
+          break;
         }
       }
     }
@@ -161,8 +140,18 @@ export class Remote {
 
   call(
     method: RpcRequest["method"],
+    params?: RpcRequest["params"],
+    options?: { isNotification?: false },
+  ): Promise<JsonValue>;
+  call(
+    method: RpcRequest["method"],
     params: RpcRequest["params"],
-    isNotification = false,
+    options: { isNotification: true },
+  ): Promise<undefined>;
+  call(
+    method: RpcRequest["method"],
+    params: RpcRequest["params"],
+    { isNotification }: { isNotification?: boolean } = {},
   ): Promise<JsonValue | undefined> {
     const rpcRequest = createRequest({
       method,
@@ -208,15 +197,6 @@ export class Remote {
             params: { method, params, id: rpcRequest.id },
           },
         ));
-      },
-      emitBatch: (params: RpcRequest["params"][]): void => {
-        return this.socket.send(JSON.stringify(params.map((p) => (
-          {
-            ...rpcRequest,
-            method: "emit",
-            params: { method, params: p, id: rpcRequest.id },
-          }
-        ))));
       },
     };
   }

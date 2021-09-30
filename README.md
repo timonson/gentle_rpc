@@ -169,7 +169,9 @@ remote.socket.close();
 ##### notification
 
 ```typescript
-const notification = await remote.call("animalsMakeNoise", ["wuufff"], true);
+const notification = await remote.call("animalsMakeNoise", ["wuufff"], {
+  isNotification: true,
+});
 // undefined
 ```
 
@@ -177,8 +179,8 @@ const notification = await remote.call("animalsMakeNoise", ["wuufff"], true);
 
 By using the `subscribe` method you can send messages between multiple clients.
 It returns an object with a generator property
-`{ generator: AsyncGenerator<JsonValue>}` and the methods `emit`, `emitBatch`
-and `unsubscribe`.
+`{ generator: AsyncGenerator<JsonValue>}` and the methods `emit` and
+`unsubscribe`.
 
 Other clients can _listen to_ and _emit_ messages by _subscribing_ to the same
 method.
@@ -197,19 +199,17 @@ async function run(iter: AsyncGenerator<unknown>) {
   }
 }
 
-const greeting = firstClient.subscribe("sayHello");
-const second = secondClient.subscribe("sayHello");
+const greetingFirst = firstClient.subscribe("sayHello");
+const greetingSecond = secondClient.subscribe("sayHello");
 
-run(greeting.generator);
-run(second.generator);
-greeting.emit({ w: "first" });
-second.emitBatch([{ w: "second" }, { w: "third" }]);
+run(greetingFirst.generator);
+run(greetingSecond.generator);
+greetingFirst.emit(["first"]);
+greetingSecond.emit(["second"]);
 // Hello first
 // Hello first
 // Hello second
 // Hello second
-// Hello third
-// Hello third
 ```
 
 ## Proxy API

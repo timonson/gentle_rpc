@@ -1,6 +1,5 @@
 import { createRpcResponseOrBatch } from "./creation.ts";
 import { validateRequest, validateRpcRequestObject } from "./validation.ts";
-import { isWebSocketCloseEvent } from "./deps.ts";
 
 import type { CreationInput } from "./creation.ts";
 import type { MethodsAndIdsStore } from "./ws_internal_methods.ts";

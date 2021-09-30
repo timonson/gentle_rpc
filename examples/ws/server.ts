@@ -31,16 +31,18 @@ for await (const conn of server) {
   (async () => {
     const httpConn = Deno.serveHttp(conn);
     for await (const requestEvent of httpConn) {
-      requestEvent.respondWith(respond(rpcMethods, requestEvent.request, {
-        proto: "ws",
-        enableInternalMethods: true,
-        publicErrorStack: true,
-        auth: {
-          key,
-          methods: ["login"],
-          jwt: requestEvent.request.headers.get("sec-websocket-protocol"),
-        },
-      }));
+      requestEvent.respondWith(
+        await respond(rpcMethods, requestEvent.request, {
+          proto: "ws",
+          enableInternalMethods: true,
+          publicErrorStack: true,
+          auth: {
+            key,
+            methods: ["login"],
+            jwt: requestEvent.request.headers.get("sec-websocket-protocol"),
+          },
+        }),
+      );
     }
   })();
 }

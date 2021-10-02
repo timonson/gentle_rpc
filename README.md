@@ -7,7 +7,9 @@ JSON-RPC 2.0 library (server and client) with HTTP and WebSockets support for
 
 ### respond
 
-Takes `Methods`, `ServerRequest` and `Options`.
+Takes `Methods`, `ServerRequest` and `Options`. Look
+[here](https://github.com/timonson/gentle_rpc/blob/master/server/response.ts)
+for more information about `Options`.
 
 ```typescript
 import { listenAndServe } from "https://deno.land/std@0.107.0/http/server.ts";
@@ -141,13 +143,10 @@ let noise2 = await remote.batch({
 
 ### WebSockets
 
-The support for WebSockets is still experimental and has not been fully tested
-yet.
-
 #### call
 
 Takes a string and an `Array<JsonValue>` or `Record<string, JsonValue>` object
-and returns `Promise<JsonValue | undefined>`.
+and returns `Promise<JsonValue>`.
 
 ```typescript
 const noise = await remote.call("callNamedParameters", {
@@ -159,6 +158,8 @@ const noise = await remote.call("callNamedParameters", {
 
 remote.socket.close();
 ```
+
+Notifications return `Promise<undefined>`.
 
 ##### notification
 

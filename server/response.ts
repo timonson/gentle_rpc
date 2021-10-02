@@ -15,7 +15,7 @@ export type Options = {
   publicErrorStack?: boolean;
   // enable 'subscribe', 'emit' and 'unsubscribe' (only ws):
   enableInternalMethods?: boolean;
-  // defaults to both:
+  // defaults to 'both':
   proto?: "ws" | "http" | "both";
   // Enable CORS via the "Access-Control-Allow-Origin" header (only http):
   cors?: boolean;

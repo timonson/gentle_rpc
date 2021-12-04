@@ -25,7 +25,8 @@ const key = await crypto.subtle.generateKey(
 );
 
 const server = Deno.listen({ port: 8000 });
-console.log("Listening on 0.0.0.0:8000");
+
+console.log("Listening on http://localhost:8000");
 
 for await (const conn of server) {
   (async () => {

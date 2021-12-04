@@ -1,3 +1,7 @@
+/**
+ * Transpiled for legacy browsers
+ */
+
 function _typeof(obj) {
   "@babel/helpers - typeof";
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -349,7 +353,7 @@ var BadServerDataError = /*#__PURE__*/ function (_Error) {
 
   var _super = _createSuper(BadServerDataError);
 
-  function BadServerDataError(id1, message, errorCode, data1) {
+  function BadServerDataError(id, message, errorCode, data) {
     var _this;
 
     _classCallCheck(this, BadServerDataError);
@@ -363,9 +367,9 @@ var BadServerDataError = /*#__PURE__*/ function (_Error) {
     _defineProperty(_assertThisInitialized(_this), "data", void 0);
 
     _this.name = _this.constructor.name;
-    _this.id = id1;
+    _this.id = id;
     _this.code = errorCode;
-    _this.data = data1;
+    _this.data = data;
     return _this;
   }
 
@@ -457,7 +461,7 @@ function processBatchObject1(rpcResponseBatch, isNotification) {
 }
 
 var Remote1 = /*#__PURE__*/ function () {
-  function Remote1(resource1) {
+  function Remote1(resource) {
     var options = arguments.length > 1 && arguments[1] !== undefined
       ? arguments[1]
       : {};
@@ -478,7 +482,7 @@ var Remote1 = /*#__PURE__*/ function () {
       method: "POST",
       headers: headers,
     });
-    this.resource = resource1;
+    this.resource = resource;
   }
 
   _createClass(Remote1, [{
@@ -487,11 +491,20 @@ var Remote1 = /*#__PURE__*/ function () {
       var _ref6 = arguments.length > 1 && arguments[1] !== undefined
           ? arguments[1]
           : {},
-        isNotification = _ref6.isNotification;
+        isNotification = _ref6.isNotification,
+        jwt = _ref6.jwt;
 
       return send(
         this.resource,
         _objectSpread(_objectSpread({}, this.fetchInit), {}, {
+          headers: jwt
+            ? new Headers(
+              [].concat(_toConsumableArray(this.fetchInit.headers.entries()), [[
+                "Authorization",
+                "Bearer ".concat(jwt),
+              ]]),
+            )
+            : this.fetchInit.headers,
           body: JSON.stringify(createRequestBatch(batchObj, isNotification)),
         }),
       ).then(function (rpcResponseBatch) {

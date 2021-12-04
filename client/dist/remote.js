@@ -37,12 +37,12 @@ class BadServerDataError extends Error {
   id;
   code;
   data;
-  constructor(id1, message, errorCode, data1) {
+  constructor(id, message, errorCode, data) {
     super(message);
     this.name = this.constructor.name;
-    this.id = id1;
+    this.id = id;
     this.code = errorCode;
-    this.data = data1;
+    this.data = data;
   }
 }
 function validateRpcNotification(data) {
@@ -120,7 +120,7 @@ function processBatchObject(rpcResponseBatch, isNotification) {
 class Remote {
   resource;
   fetchInit;
-  constructor(resource1, options = {}) {
+  constructor(resource, options = {}) {
     const headers = options.headers === undefined
       ? new Headers()
       : options.headers instanceof Headers
@@ -132,11 +132,20 @@ class Remote {
       method: "POST",
       headers,
     };
-    this.resource = resource1;
+    this.resource = resource;
   }
-  batch(batchObj, { isNotification } = {}) {
+  batch(batchObj, { isNotification, jwt } = {}) {
     return send(this.resource, {
       ...this.fetchInit,
+      headers: jwt
+        ? new Headers([
+          ...this.fetchInit.headers.entries(),
+          [
+            "Authorization",
+            `Bearer ${jwt}`,
+          ],
+        ])
+        : this.fetchInit.headers,
       body: JSON.stringify(createRequestBatch(batchObj, isNotification)),
     }).then((rpcResponseBatch) => {
       if (rpcResponseBatch === undefined && isNotification) {
@@ -187,13 +196,20 @@ function isObject(obj) {
 class Remote1 {
   textDecoder;
   payloadData;
+  payloadQueue = [];
   socket;
-  constructor(socket1) {
-    this.socket = socket1;
-    this.getPayloadData(socket1);
+  constructor(socket) {
+    this.socket = socket;
+    this.getPayloadData(socket);
   }
   async getPayloadData(socket) {
     this.payloadData = new Promise((resolve, reject) => {
+      if (this.payloadQueue.length > 0) {
+        const payload = this.payloadQueue.shift();
+        resolve(payload);
+        return;
+      }
+      let isResolved = false;
       socket.onmessage = async (event) => {
         let msg;
         if (event.data instanceof Blob) {
@@ -204,7 +220,13 @@ class Remote1 {
           msg = event.data;
         }
         try {
-          resolve(JSON.parse(msg));
+          const payload = JSON.parse(msg);
+          if (isResolved) {
+            this.payloadQueue.push(payload);
+            return;
+          }
+          resolve(payload);
+          isResolved = true;
         } catch (err) {
           reject(
             new BadServerDataError(null, "The received data is invalid JSON."),

@@ -12,7 +12,7 @@ Takes `Methods`, `ServerRequest` and `Options`. Look
 for more information about `Options`.
 
 ```typescript
-import { listenAndServe } from "https://deno.land/std@0.107.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.117.0/http/server.ts";
 import { respond } from "https://deno.land/x/gentle_rpc/mod.ts";
 
 const rpcMethods = {
@@ -23,9 +23,9 @@ const rpcMethods = {
     noise.map((el) => el.toUpperCase()).join(" "),
 };
 
-listenAndServe("0.0.0.0:8000", (req) => respond(rpcMethods, req));
+serve((req) => respond(rpcMethods, req), { addr: ":8000" });
 
-console.log("listening on 0.0.0.0:8000");
+console.log("Listening on http://localhost:8000");
 ```
 
 #### CustomError

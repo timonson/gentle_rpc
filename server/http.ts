@@ -1,4 +1,4 @@
-import { cleanBatch, createRpcResponseOrBatch } from "./creation.ts";
+import { createRpcResponseOrBatch } from "./creation.ts";
 import { validateRequest } from "./validation.ts";
 
 import type { Methods, Options } from "./response.ts";

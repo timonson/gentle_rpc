@@ -1,7 +1,6 @@
 import { handleHttpRequest } from "./http.ts";
 import { handleWs } from "./ws.ts";
 import { internalMethods } from "./ws_internal_methods.ts";
-import { createRpcResponseObject } from "./creation.ts";
 
 import type { JsonValue } from "../json_rpc_types.ts";
 

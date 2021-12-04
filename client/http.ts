@@ -84,23 +84,29 @@ export class Remote {
 
   batch(
     batchObj: BatchArrayInput,
-    options?: { isNotification?: false },
+    options?: { isNotification?: false; jwt?: string },
   ): Promise<BatchArrayOutput>;
   batch(
     batchObj: BatchArrayInput,
-    options: { isNotification: true },
+    options: { isNotification: true; jwt?: string },
   ): Promise<undefined>;
   batch(
     batchObj: BatchObjectInput,
   ): Promise<BatchObjectOutput>;
   batch(
     batchObj: BatchArrayInput | BatchObjectInput,
-    { isNotification }: { isNotification?: boolean } = {},
+    { isNotification, jwt }: { isNotification?: boolean; jwt?: string } = {},
   ): Promise<
     BatchArrayOutput | BatchObjectOutput | undefined
   > {
     return send(this.resource, {
       ...this.fetchInit,
+      headers: jwt
+        ? new Headers([
+          ...this.fetchInit.headers.entries(),
+          ["Authorization", `Bearer ${jwt}`],
+        ])
+        : this.fetchInit.headers,
       body: JSON.stringify(
         createRequestBatch(batchObj, isNotification),
       ),
@@ -130,7 +136,7 @@ export class Remote {
   call(
     method: RpcRequest["method"],
     params: RpcRequest["params"],
-    options: { isNotification: true },
+    options: { isNotification: true; jwt?: string },
   ): Promise<undefined>;
   call(
     method: RpcRequest["method"],

@@ -2,7 +2,7 @@ import type { RpcBatchRequest, RpcRequest } from "../json_rpc_types.ts";
 import type { BatchArrayInput, BatchObjectInput } from "./http.ts";
 
 function generateId() {
-  return window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+  return crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
 }
 
 export function createRequest({

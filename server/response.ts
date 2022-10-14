@@ -5,7 +5,7 @@ import { internalMethods } from "./ws_internal_methods.ts";
 import type { JsonValue } from "../json_rpc_types.ts";
 
 export type Methods = {
-  [method: string]: (...arg: any) => JsonValue | Promise<JsonValue>;
+  [method: string]: (...arg: any[]) => JsonValue | Promise<JsonValue>;
 };
 export type Options = {
   // Add headers to the default header '{"content-type" : "application/json"}':

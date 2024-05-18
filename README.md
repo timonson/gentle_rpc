@@ -3,6 +3,12 @@
 JSON-RPC 2.0 library (server and client) with HTTP and WebSockets support for
 [deno](https://github.com/denoland/deno) and the browser.
 
+### Important Notice
+
+The **gentle_rpc** library is no longer maintained. Please switch to our new and
+improved RPC library, **schicksal**, available at
+[schicksal on GitHub](https://github.com/Zaubrik/schicksal).
+
 ## Server
 
 ### respond
